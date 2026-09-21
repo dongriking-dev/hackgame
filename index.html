@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CYBER HACK & DEFEND // 簡単ハッキング対戦ゲーム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+
+    <style>
+        body {
+            background-color: #050811;
+            color: #00ff66;
+            font-family: 'Share Tech Mono', 'Fira Code', monospace;
+            overflow-x: hidden;
+        }
+
+        /* Scanline Overlay */
+        .scanline {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(
+                to bottom,
+                rgba(255,255,255,0),
+                rgba(255,255,255,0) 50%,
+                rgba(0, 0, 0, 0.25) 50%,
+                rgba(0, 0, 0, 0.25)
+            );
+            background-size: 100% 4px;
+            pointer-events: none;
+            z-index: 90;
+            opacity: 0.5;
+        }
+
+        /* Glow utilities */
+        .glow-green { text-shadow: 0 0 8px rgba(0, 255, 102, 0.8); }
+        .glow-cyan { text-shadow: 0 0 8px rgba(0, 240, 255, 0.8); }
+        .glow-yellow { text-shadow: 0 0 8px rgba(255, 204, 0, 0.8); }
+        .glow-red { text-shadow: 0 0 8px rgba(255, 0, 85, 0.8); }
+
+        .border-glow-cyan { box-shadow: 0 0 12px rgba(0, 240, 255, 0.3); border-color: #00f0ff; }
+        .border-glow-green { box-shadow: 0 0 12px rgba(0, 255, 102, 0.3); border-color: #00ff66; }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #0b0f19; }
+        ::-webkit-scrollbar-thumb { background: #00f0ff; border-radius: 3px; }
+
+        /* Keyframes */
+        @keyframes pulseGlow {
+            0%, 100% { box-shadow: 0 0 5px rgba(0,255,102,0.4); }
+            50% { box-shadow: 0 0 15px rgba(0,255,102,0.9); }
+        }
+        .pulse-active { animation: pulseGlow 1.5s infinite; }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between relative select-none">
+    <div class="scanline"></div>
+    <canvas id="matrixCanvas" class="fixed top-0 left-0 w-full h-full opacity-20 pointer-events-none z-0"></canvas>
+
+    <!-- TOP HEADER / NAV -->
+    <header class="relative z-10 bg-gray-950/90 border-b border-cyan-500/30 px-4 py-3 flex justify-between items-center backdrop-blur-md">
+        <div class="flex items-center space-x-3">
+            <i class="fa-solid fa-shield-cat text-cyan-400 text-2xl animate-bounce"></i>
+            <div>
+                <h1 class="text-lg md:text-xl font-bold tracking-wider text-cyan-400 glow-cyan">CYBER HACK & DEFEND</h1>
+                <p class="text-[10px] text-gray-400">超簡単リアルタイム対戦ハッキングゲーム</p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 sm:space-x-4 text-xs">
+            <div id="badgeRoom" class="hidden bg-gray-900 border border-cyan-500/50 px-2.5 py-1 rounded text-cyan-300">
+                ROOM: <span id="lblRoomCode" class="font-bold text-white tracking-widest">----</span>
+            </div>
+            <button onclick="openModal('ruleModal')" class="px-3 py-1.5 bg-cyan-950 border border-cyan-500/50 hover:bg-cyan-500/20 text-cyan-300 rounded text-xs transition flex items-center font-bold">
+                <i class="fa-solid fa-circle-question mr-1.5 text-cyan-400"></i> ルール解説
+            </button>
+            <button id="btnAudioToggle" onclick="toggleAudio()" class="px-2.5 py-1.5 bg-gray-900 border border-yellow-500/50 text-yellow-400 rounded hover:bg-yellow-500/20 text-xs transition">
+                <i class="fa-solid fa-volume-high"></i> <span class="hidden sm:inline">SFX: ON</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="relative z-10 flex-1 container mx-auto p-3 md:p-6 flex flex-col justify-center max-w-6xl">
+
+        <!-- ================= SCREEN 1: ROOM SETUP & TUTORIAL QUICK START ================= -->
+        <div id="screenSetup" class="max-w-2xl mx-auto w-full bg-gray-900/90 border-2 border-cyan-500/60 p-5 md:p-8 rounded-xl shadow-2xl border-glow-cyan backdrop-blur-md space-y-6">
+            
+            <div class="text-center space-y-2">
+                <span class="bg-cyan-950 text-cyan-400 text-[11px] px-3 py-1 rounded-full border border-cyan-500/40">初心者OK！3分で遊べる対戦ゲーム</span>
+                <h2 class="text-2xl md:text-3xl font-bold text-cyan-400 glow-cyan">プレイヤー設定 & ルーム作成</h2>
+                <p class="text-xs text-gray-300">自分の「秘密のパスワード」を決めて、相手のパスワードを暴こう！</p>
+            </div>
+
+            <!-- Quick Rule Overview Card -->
+            <div class="bg-black/60 border border-cyan-500/30 p-4 rounded-lg space-y-2 text-xs">
+                <div class="font-bold text-yellow-400 flex items-center">
+                    <i class="fa-solid fa-gamepad mr-2"></i> かんたん3ステップ ルール:
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px] text-gray-300">
+                    <div class="p-2 bg-gray-900/80 rounded border border-gray-800">
+                        <span class="text-cyan-400 font-bold">1. 防衛</span><br>コインでセキュリティレベルを上げて自分のパスワードを守る！
+                    </div>
+                    <div class="p-2 bg-gray-900/80 rounded border border-gray-800">
+                        <span class="text-yellow-400 font-bold">2. ミニゲーム</span><br>簡単なパズルを遊んでコインと解析ヒントを獲得！
+                    </div>
+                    <div class="p-2 bg-gray-900/80 rounded border border-gray-800">
+                        <span class="text-green-400 font-bold">3. 勝利</span><br>相手のパスワードを完全に解読したプレイヤーの勝ち！
+                    </div>
+                </div>
+            </div>
+
+            <form onsubmit="handleStartSetup(event)" class="space-y-4">
+                <div>
+                    <label class="block text-xs font-bold text-cyan-400 mb-1">
+                        <i class="fa-solid fa-user-ninja mr-1"></i> あなたの名前 (ニックネーム)
+                    </label>
+                    <input type="text" id="setupHandle" required maxlength="10" placeholder="例: ハッカー太郎" 
+                        class="w-full bg-black/80 border border-cyan-500/50 rounded-lg px-4 py-2.5 text-cyan-300 text-sm focus:outline-none focus:border-cyan-400 focus:ring-1 focus:ring-cyan-400">
+                </div>
+
+                <div>
+                    <label class="block text-xs font-bold text-red-400 mb-1">
+                        <i class="fa-solid fa-lock mr-1"></i> 防御する秘密パスワード (4〜6文字の数字または英字)
+                    </label>
+                    <input type="text" id="setupPassword" required minlength="4" maxlength="6" placeholder="例: 7777 または HERO" 
+                        class="w-full bg-black/80 border border-red-500/50 rounded-lg px-4 py-2.5 text-red-300 text-sm tracking-widest focus:outline-none focus:border-red-400 focus:ring-1 focus:ring-red-400 uppercase">
+                    <p class="text-[10px] text-gray-400 mt-1">※このパスワードが相手に当てられたら負けになります。</p>
+                </div>
+
+                <div class="border-t border-gray-800 pt-4 space-y-3">
+                    <label class="block text-xs font-bold text-yellow-400">
+                        <i class="fa-solid fa-network-wired mr-1"></i> ルーム選択 (対戦部屋)
+                    </label>
+                    
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" id="btnModeCreate" onclick="switchRoomMode('create')" 
+                            class="py-2.5 px-3 border border-yellow-500/60 bg-yellow-500/20 text-yellow-300 font-bold text-xs rounded-lg text-center hover:bg-yellow-500/30 transition">
+                            新規ルーム作成
+                        </button>
+                        <button type="button" id="btnModeJoin" onclick="switchRoomMode('join')" 
+                            class="py-2.5 px-3 border border-gray-700 bg-gray-800/60 text-gray-400 font-bold text-xs rounded-lg text-center hover:bg-gray-800 transition">
+                            友達の部屋に参加
+                        </button>
+                    </div>
+
+                    <div id="groupJoinInput" class="hidden">
+                        <input type="text" id="setupRoomCode" placeholder="4桁のルーム番号を入力 (例: 1234)" maxlength="4" 
+                            class="w-full bg-black/80 border border-yellow-500/50 rounded-lg px-4 py-2.5 text-yellow-300 text-center tracking-widest font-bold text-base focus:outline-none uppercase">
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full py-3.5 bg-gradient-to-r from-cyan-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white font-bold tracking-widest text-sm rounded-lg transition transform active:scale-98 shadow-lg shadow-cyan-500/20 flex items-center justify-center">
+                    <i class="fa-solid fa-play mr-2"></i> 対戦をはじめる！
+                </button>
+            </form>
+        </div>
+
+        <!-- ================= SCREEN 2: MAIN DASHBOARD HUD ================= -->
+        <div id="screenDashboard" class="hidden grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+            <!-- LEFT: DEFENSE & STATUS (4 Cols) -->
+            <div class="lg:col-span-4 flex flex-col space-y-4">
+                
+                <!-- MY PROFILE & DEFENSE -->
+                <div class="bg-gray-900/90 border border-cyan-500/40 rounded-xl p-4 space-y-4 backdrop-blur-md shadow-lg">
+                    <div class="flex justify-between items-center border-b border-cyan-500/30 pb-2">
+                        <div>
+                            <span class="text-[10px] text-gray-400 block">YOU (YOUR AGENT)</span>
+                            <h3 id="lblMyHandle" class="text-lg font-bold text-cyan-300 glow-cyan">AGENT</h3>
+                        </div>
+                        <div class="text-right">
+                            <span class="text-[10px] text-gray-400 block">所持コイン</span>
+                            <span id="lblMyCoins" class="text-lg font-bold text-yellow-400 glow-yellow">🪙 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Security Firewall Level -->
+                    <div class="bg-black/60 p-3 rounded-lg border border-gray-800 space-y-2">
+                        <div class="flex justify-between items-center text-xs">
+                            <span class="text-gray-300 flex items-center"><i class="fa-solid fa-shield-halved text-green-400 mr-1.5"></i> 防御レベル:</span>
+                            <span id="lblFwLevel" class="font-bold text-green-400">LV.1 (通常)</span>
+                        </div>
+                        <p class="text-[10px] text-gray-400">レベルが高いほど相手のハック失敗率がアップ！</p>
+                        
+                        <button onclick="upgradeDefenses()" class="w-full py-2 bg-green-950/80 border border-green-500/50 hover:bg-green-500/30 text-green-300 text-xs font-bold rounded flex justify-center items-center transition">
+                            <i class="fa-solid fa-circle-arrow-up mr-1.5 text-green-400"></i> 防御を強化する (🪙 30コイン)
+                        </button>
+                    </div>
+
+                    <!-- My Secret Password View -->
+                    <div class="bg-red-950/20 border border-red-500/30 p-3 rounded-lg flex justify-between items-center">
+                        <div>
+                            <span class="text-[10px] text-red-400 block font-bold">あなたの秘密パスワード</span>
+                            <span id="lblMyPassword" class="font-mono font-bold text-white tracking-widest text-sm">****</span>
+                        </div>
+                        <span class="text-[10px] bg-red-900/60 text-red-300 px-2 py-0.5 rounded border border-red-500/40">絶対秘密</span>
+                    </div>
+                </div>
+
+                <!-- TARGET AGENTS LIST -->
+                <div class="bg-gray-900/90 border border-cyan-500/40 rounded-xl p-4 flex-1 flex flex-col backdrop-blur-md shadow-lg min-h-[220px]">
+                    <div class="flex justify-between items-center border-b border-cyan-500/30 pb-2 mb-3">
+                        <h3 class="text-sm font-bold text-cyan-400 flex items-center">
+                            <i class="fa-solid fa-crosshairs text-red-400 mr-2"></i> 攻撃対象 (ターゲット)
+                        </h3>
+                        <span id="lblTargetCount" class="text-xs bg-cyan-950 text-cyan-300 px-2 py-0.5 rounded border border-cyan-500/30">0人</span>
+                    </div>
+
+                    <div id="listTargets" class="space-y-2 overflow-y-auto flex-1 max-h-[200px] lg:max-h-none">
+                        <!-- Target elements dynamically loaded -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- RIGHT: MAIN ACTION & MINI-GAMES (8 Cols) -->
+            <div class="lg:col-span-8 flex flex-col space-y-4">
+                
+                <!-- TARGET HEADER INFO -->
+                <div class="bg-gray-900/90 border border-cyan-500/40 p-4 rounded-xl flex justify-between items-center backdrop-blur-md shadow-lg">
+                    <div>
+                        <span class="text-[10px] text-gray-400 block">SELECTED TARGET</span>
+                        <h3 id="lblActiveTargetName" class="text-xl font-bold text-cyan-300 glow-cyan">ターゲットを選択してください</h3>
+                    </div>
+                    <div class="text-right">
+                        <span id="lblActiveTargetFw" class="text-xs font-bold text-yellow-400 block">FW: LV.1</span>
+                        <span id="lblActiveTargetStatus" class="text-[10px] px-2 py-0.5 bg-gray-800 text-gray-400 rounded">未選択</span>
+                    </div>
+                </div>
+
+                <!-- HACKING MINI-GAME HUB -->
+                <div class="bg-gray-900/90 border border-cyan-500/40 rounded-xl p-4 md:p-6 flex-1 flex flex-col backdrop-blur-md shadow-lg">
+                    
+                    <!-- TAB NAVIGATION FOR MINI GAMES & CRACKING -->
+                    <div class="flex border-b border-cyan-500/30 mb-4 overflow-x-auto space-x-2 pb-2">
+                        <button id="tabGame1" onclick="switchGameTab(1)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-cyan-500/20 border border-cyan-400 text-cyan-300 flex items-center whitespace-nowrap">
+                            <i class="fa-solid fa-arrow-up-1-9 mr-1.5 text-cyan-400"></i> 1. 数字探知 (Hi-Lo)
+                        </button>
+                        <button id="tabGame2" onclick="switchGameTab(2)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 border border-transparent text-gray-400 flex items-center whitespace-nowrap hover:text-cyan-300">
+                            <i class="fa-solid fa-brain mr-1.5 text-cyan-400"></i> 2. パターン記憶
+                        </button>
+                        <button id="tabGame3" onclick="switchGameTab(3)" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-800 border border-transparent text-gray-400 flex items-center whitespace-nowrap hover:text-cyan-300">
+                            <i class="fa-solid fa-cubes-stacked mr-1.5 text-cyan-400"></i> 3. コードスロット
+                        </button>
+                        <button id="tabCrack" onclick="switchGameTab('crack')" class="px-3 py-1.5 rounded-lg text-xs font-bold bg-red-950/60 border border-red-500/40 text-red-300 flex items-center whitespace-nowrap hover:bg-red-900/60 ml-auto">
+                            <i class="fa-solid fa-key mr-1.5 text-red-400"></i> 最終パスワード解読
+                        </button>
+                    </div>
+
+                    <!-- MINI-GAME 1: HI-LO TARGET PINPOINT -->
+                    <div id="viewGame1" class="space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="bg-black/50 p-3 rounded-lg border border-gray-800 text-xs text-gray-300 space-y-1">
+                            <span class="font-bold text-cyan-400">[ルール]</span> 1〜100の中でセキュリティピンキーを当てよう！結果から「もっと大きい」か「もっと小さい」かが分かります。
+                        </div>
+
+                        <div class="bg-black/80 border border-cyan-500/30 rounded-xl p-6 text-center space-y-4">
+                            <div class="text-xs text-gray-400">ピンキーを入力 (1〜100):</div>
+                            <div class="flex justify-center space-x-2 max-w-xs mx-auto">
+                                <input type="number" id="inputHiLo" min="1" max="100" placeholder="50" 
+                                    class="w-24 bg-gray-900 border-2 border-cyan-500 rounded-lg text-center font-bold text-lg text-cyan-300 py-1.5 focus:outline-none">
+                                <button onclick="playHiLoGame()" class="px-5 py-2 bg-cyan-600 hover:bg-cyan-500 text-black font-bold text-xs rounded-lg transition shadow-md">
+                                    スキャン
+                                </button>
+                            </div>
+                            <div id="lblHiLoResult" class="text-sm font-bold text-yellow-400 min-h-[24px]">スキャン待機中...</div>
+                        </div>
+
+                        <div class="text-right text-[11px] text-gray-400">成功報酬: <span class="text-yellow-400 font-bold">+🪙 15コイン</span></div>
+                    </div>
+
+                    <!-- MINI-GAME 2: PATTERN UNLOCK -->
+                    <div id="viewGame2" class="hidden space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="bg-black/50 p-3 rounded-lg border border-gray-800 text-xs text-gray-300">
+                            <span class="font-bold text-cyan-400">[ルール]</span> 光る3つのノードの順番を覚えて、同じ順番でタップしてください！
+                        </div>
+
+                        <div class="bg-black/80 border border-cyan-500/30 rounded-xl p-6 flex flex-col items-center space-y-4">
+                            <div id="lblPatternStatus" class="text-xs font-bold text-cyan-300">「スタート」を押して光る順番を覚えよう</div>
+                            
+                            <div class="flex space-x-4">
+                                <button id="pNode0" onclick="tapPatternNode(0)" class="w-16 h-16 rounded-xl bg-gray-800 border-2 border-cyan-500/50 flex items-center justify-center font-bold text-xl text-cyan-400 transition transform active:scale-90">1</button>
+                                <button id="pNode1" onclick="tapPatternNode(1)" class="w-16 h-16 rounded-xl bg-gray-800 border-2 border-cyan-500/50 flex items-center justify-center font-bold text-xl text-cyan-400 transition transform active:scale-90">2</button>
+                                <button id="pNode2" onclick="tapPatternNode(2)" class="w-16 h-16 rounded-xl bg-gray-800 border-2 border-cyan-500/50 flex items-center justify-center font-bold text-xl text-cyan-400 transition transform active:scale-90">3</button>
+                            </div>
+
+                            <button onclick="startPatternGame()" id="btnStartPattern" class="px-6 py-2 bg-cyan-600 hover:bg-cyan-500 text-black font-bold text-xs rounded-lg transition">
+                                パターン表示スタート
+                            </button>
+                        </div>
+
+                        <div class="text-right text-[11px] text-gray-400">成功報酬: <span class="text-yellow-400 font-bold">+🪙 20コイン</span></div>
+                    </div>
+
+                    <!-- MINI-GAME 3: CODE SLOT MATCHER -->
+                    <div id="viewGame3" class="hidden space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="bg-black/50 p-3 rounded-lg border border-gray-800 text-xs text-gray-300">
+                            <span class="font-bold text-cyan-400">[ルール]</span> 回転するコードをタイミングよく止めて <span class="text-green-400 font-bold">[7]</span> を揃えよう！
+                        </div>
+
+                        <div class="bg-black/80 border border-cyan-500/30 rounded-xl p-6 text-center space-y-4">
+                            <div class="flex justify-center space-x-3 font-mono text-3xl font-bold">
+                                <div id="slot0" class="w-14 h-16 bg-gray-900 border-2 border-cyan-500/60 rounded-lg flex items-center justify-center text-cyan-400 shadow-inner">7</div>
+                                <div id="slot1" class="w-14 h-16 bg-gray-900 border-2 border-cyan-500/60 rounded-lg flex items-center justify-center text-cyan-400 shadow-inner">7</div>
+                                <div id="slot2" class="w-14 h-16 bg-gray-900 border-2 border-cyan-500/60 rounded-lg flex items-center justify-center text-cyan-400 shadow-inner">7</div>
+                            </div>
+
+                            <button onclick="toggleSlotSpin()" id="btnSlotControl" class="px-8 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs rounded-lg transition">
+                                スロット回転スタート
+                            </button>
+                        </div>
+
+                        <div class="text-right text-[11px] text-gray-400">成功報酬: <span class="text-yellow-400 font-bold">+🪙 25コイン</span></div>
+                    </div>
+
+                    <!-- TAB: FINAL CRACK & HINTS -->
+                    <div id="viewCrack" class="hidden space-y-4 flex-1 flex flex-col justify-between">
+                        <div class="bg-red-950/20 border border-red-500/30 p-3 rounded-lg text-xs text-gray-300">
+                            <span class="font-bold text-red-400">[パスワード解析]</span> コインを使ってスキャナーを使い、ヒントを集めてターゲットのパスワードを当てよう！
+                        </div>
+
+                        <!-- Revealed Hint Progress Bar -->
+                        <div class="bg-black/80 border border-red-500/40 rounded-xl p-4 text-center space-y-3">
+                            <span class="text-xs text-gray-400 block">解読したヒント状態:</span>
+                            <div id="lblCrackedPasswordProgress" class="font-mono text-2xl md:text-3xl font-bold text-yellow-400 tracking-widest">
+                                ? ? ? ?
+                            </div>
+
+                            <!-- Buy Hint Button -->
+                            <button onclick="buyScannerHint()" class="py-2 px-4 bg-yellow-600/80 hover:bg-yellow-500 text-black font-bold text-xs rounded-lg transition inline-flex items-center">
+                                <i class="fa-solid fa-radar mr-1.5"></i> ヒントスキャナー実行 (🪙 20コイン)
+                            </button>
+                        </div>
+
+                        <!-- Final Guess Form -->
+                        <div class="bg-black/80 border border-gray-800 rounded-xl p-4 space-y-3">
+                            <label class="block text-xs font-bold text-red-400">ターゲットの最終パスワードを入力して攻撃！</label>
+                            <div class="flex space-x-2">
+                                <input type="text" id="inputFinalGuess" placeholder="例: 7777" maxlength="6" 
+                                    class="flex-1 bg-gray-900 border border-red-500/50 rounded-lg px-3 py-2 text-red-300 font-bold text-sm tracking-widest focus:outline-none uppercase">
+                                <button onclick="submitFinalHack()" class="px-6 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg transition glow-red">
+                                    ハック実行！
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 bg-gray-950/90 border-t border-cyan-500/20 px-4 py-2 text-center text-gray-500 text-[11px]">
+        CYBER HACK & DEFEND ENGINE // EASY CYBERPUNK BATTLE
+    </footer>
+
+    <!-- MODAL: RULE EXPLANATION -->
+    <div id="ruleModal" class="hidden fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+        <div class="bg-gray-900 border-2 border-cyan-500 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl text-xs text-gray-300">
+            <div class="flex justify-between items-center border-b border-cyan-500/30 pb-2">
+                <h3 class="text-base font-bold text-cyan-400 flex items-center">
+                    <i class="fa-solid fa-book-open mr-2"></i> ゲームのルール解説
+                </h3>
+                <button onclick="closeModal('ruleModal')" class="text-gray-400 hover:text-white text-lg font-bold">&times;</button>
+            </div>
+
+            <div class="space-y-3 overflow-y-auto max-h-[60vh] pr-2">
+                <div class="p-2.5 bg-black/50 border border-cyan-500/30 rounded-lg space-y-1">
+                    <span class="font-bold text-cyan-300 text-sm">💡 勝利条件</span>
+                    <p class="text-gray-300">相手が設定した「秘密のパスワード」を一番最初に解読したプレイヤーが勝利です！</p>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="font-bold text-yellow-400">① ミニゲームでコインを稼ぐ</div>
+                    <p class="text-gray-400">「数字探知」「パターン記憶」「コードスロット」の3種類のミニゲームを遊ぶとコインを獲得できます。</p>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="font-bold text-green-400">② 防御レベルを強化する</div>
+                    <p class="text-gray-400">貯めたコインで「防御レベル」を強化すると、自分のパスワードを守りやすくなります。</p>
+                </div>
+
+                <div class="space-y-2">
+                    <div class="font-bold text-red-400">③ スキャナーでヒントを獲得してハック</div>
+                    <p class="text-gray-400">コインを使って「ヒントスキャナー」を実行すると、相手のパスワードの文字や種類が判明します。準備ができたらパスワードを解読しましょう！</p>
+                </div>
+            </div>
+
+            <button onclick="closeModal('ruleModal')" class="w-full py-2 bg-cyan-600 hover:bg-cyan-500 text-black font-bold rounded-lg transition">
+                閉じる
+            </button>
+        </div>
+    </div>
+
+    <!-- MODAL: GAME OVER / VICTORY -->
+    <div id="resultModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-center justify-center p-4 backdrop-blur-md">
+        <div id="resultCard" class="bg-gray-900 border-2 border-green-500 rounded-xl max-w-md w-full p-6 text-center space-y-4 shadow-2xl">
+            <div id="resultIcon" class="text-5xl text-green-400 animate-bounce">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 id="resultTitle" class="text-2xl font-bold text-green-400 tracking-wider">HACK COMPLETE!</h2>
+            <p id="resultDesc" class="text-xs text-gray-300">ターゲットのハックに成功しました！</p>
+            
+            <div class="bg-black/80 border border-gray-800 p-3 rounded-lg font-mono text-left text-xs space-y-1">
+                <div>WINNER: <span id="resWinner" class="text-cyan-300 font-bold">---</span></div>
+                <div>TARGET: <span id="resTarget" class="text-yellow-300">---</span></div>
+                <div>CRACKED PASS: <span id="resPassword" class="text-red-400 font-bold tracking-widest">---</span></div>
+            </div>
+
+            <button onclick="location.reload()" class="w-full py-2.5 bg-green-600 hover:bg-green-500 text-black font-bold rounded-lg transition">
+                もう一度遊ぶ
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // --- GAME & NETWORK STATE ---
+        let me = {
+            id: 'AGENT_' + Math.floor(1000 + Math.random() * 9000),
+            handle: '',
+            password: '',
+            coins: 30, // Starting coins
+            fwLevel: 1
+        };
+
+        let roomCode = '';
+        let roomPlayers = {};
+        let activeTargetId = null;
+        let activeTab = 1;
+        let broadcastChannel = null;
+        let soundEnabled = true;
+
+        // --- MINI-GAME STATES ---
+        // Game 1: Hi-Lo
+        let hiLoTarget = Math.floor(Math.random() * 100) + 1;
+
+        // Game 2: Pattern
+        let patternSequence = [];
+        let userPatternStep = 0;
+        let patternPlaying = false;
+
+        // Game 3: Slot
+        let slotInterval = null;
+        let slotSpinning = false;
+
+        // Target Hints state
+        let targetHints = {}; // targetId -> array of revealed hints
+
+        // --- AUDIO ENGINE (Web Audio API) ---
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+
+        function playSound(type) {
+            if (!soundEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(600, now);
+                    gain.gain.setValueAtTime(0.05, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+                    osc.start(now); osc.stop(now + 0.05);
+                } else if (type === 'win') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.setValueAtTime(600, now + 0.1);
+                    osc.frequency.setValueAtTime(800, now + 0.2);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+                    osc.start(now); osc.stop(now + 0.35);
+                } else if (type === 'fail') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(200, now);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+                    osc.start(now); osc.stop(now + 0.2);
+                }
+            } catch(e) {}
+        }
+
+        function toggleAudio() {
+            soundEnabled = !soundEnabled;
+            const btn = document.getElementById('btnAudioToggle');
+            btn.innerHTML = soundEnabled ? '<i class="fa-solid fa-volume-high"></i> <span class="hidden sm:inline">SFX: ON</span>' : '<i class="fa-solid fa-volume-xmark"></i> <span class="hidden sm:inline">SFX: OFF</span>';
+        }
+
+        // --- SETUP & NETWORK MULTIPLAYER ---
+        function switchRoomMode(mode) {
+            playSound('click');
+            const joinGrp = document.getElementById('groupJoinInput');
+            const btnCreate = document.getElementById('btnModeCreate');
+            const btnJoin = document.getElementById('btnModeJoin');
+
+            if (mode === 'create') {
+                joinGrp.classList.add('hidden');
+                btnCreate.classList.add('border-yellow-500/60', 'bg-yellow-500/20', 'text-yellow-300');
+                btnJoin.classList.remove('border-yellow-500/60', 'bg-yellow-500/20', 'text-yellow-300');
+                btnJoin.classList.add('border-gray-700', 'bg-gray-800/60', 'text-gray-400');
+            } else {
+                joinGrp.classList.remove('hidden');
+                btnJoin.classList.add('border-yellow-500/60', 'bg-yellow-500/20', 'text-yellow-300');
+                btnCreate.classList.remove('border-yellow-500/60', 'bg-yellow-500/20', 'text-yellow-300');
+                btnCreate.classList.add('border-gray-700', 'bg-gray-800/60', 'text-gray-400');
+            }
+        }
+
+        function handleStartSetup(e) {
+            e.preventDefault();
+            playSound('click');
+
+            const handle = document.getElementById('setupHandle').value.trim();
+            const password = document.getElementById('setupPassword').value.trim().toUpperCase();
+            const joinCode = document.getElementById('setupRoomCode').value.trim().toUpperCase();
+            const isJoin = !document.getElementById('groupJoinInput').classList.contains('hidden');
+
+            if (!handle || !password) return;
+
+            me.handle = handle;
+            me.password = password;
+
+            roomCode = (isJoin && joinCode.length === 4) ? joinCode : Math.floor(1000 + Math.random() * 9000).toString();
+
+            initNetworkChannel();
+
+            // Render HUD Labels
+            document.getElementById('lblMyHandle').innerText = me.handle;
+            document.getElementById('lblMyPassword').innerText = me.password;
+            document.getElementById('lblRoomCode').innerText = roomCode;
+            document.getElementById('badgeRoom').classList.remove('hidden');
+
+            document.getElementById('screenSetup').classList.add('hidden');
+            document.getElementById('screenDashboard').classList.remove('hidden');
+
+            broadcastAction('JOIN_ROOM', { player: me });
+            saveSelf();
+            updateSelfUI();
+        }
+
+        function initNetworkChannel() {
+            const chName = `cyber_room_${roomCode}`;
+            if (window.BroadcastChannel) {
+                broadcastChannel = new BroadcastChannel(chName);
+                broadcastChannel.onmessage = (e) => handleNetworkMessage(e.data);
+            }
+
+            window.addEventListener('storage', (e) => {
+                if (e.key === chName && e.newValue) {
+                    try { handleNetworkMessage(JSON.parse(e.newValue)); } catch(err){}
+                }
+            });
+        }
+
+        function broadcastAction(type, payload) {
+            const msg = { type, payload, senderId: me.id, timestamp: Date.now() };
+            if (broadcastChannel) broadcastChannel.postMessage(msg);
+            localStorage.setItem(`cyber_room_${roomCode}`, JSON.stringify(msg));
+        }
+
+        function handleNetworkMessage(msg) {
+            if (!msg || msg.senderId === me.id) return;
+
+            if (msg.type === 'JOIN_ROOM') {
+                roomPlayers[msg.senderId] = msg.payload.player;
+                broadcastAction('ANNOUNCE_PRESENCE', { player: me });
+                refreshTargetsList();
+            } else if (msg.type === 'ANNOUNCE_PRESENCE') {
+                roomPlayers[msg.senderId] = msg.payload.player;
+                refreshTargetsList();
+            } else if (msg.type === 'UPDATE_PLAYER') {
+                roomPlayers[msg.senderId] = msg.payload.player;
+                refreshTargetsList();
+            } else if (msg.type === 'GAME_OVER') {
+                showVictoryModal(msg.payload.winner, msg.payload.victim, msg.payload.password);
+            }
+        }
+
+        function saveSelf() {
+            roomPlayers[me.id] = me;
+            broadcastAction('UPDATE_PLAYER', { player: me });
+        }
+
+        function refreshTargetsList() {
+            const container = document.getElementById('listTargets');
+            container.innerHTML = '';
+
+            const otherIds = Object.keys(roomPlayers).filter(id => id !== me.id);
+            document.getElementById('lblTargetCount').innerText = `${otherIds.length}人`;
+
+            if (otherIds.length === 0) {
+                container.innerHTML = `
+                    <div class="p-3 text-center text-xs text-gray-400 border border-dashed border-gray-800 rounded-lg">
+                        友達を待っています...<br>ルーム番号 <span class="text-cyan-400 font-bold">${roomCode}</span> を共有するか、別タブで開いてください！
+                    </div>
+                `;
+                return;
+            }
+
+            otherIds.forEach(id => {
+                const p = roomPlayers[id];
+                const isSelected = activeTargetId === id;
+
+                const item = document.createElement('div');
+                item.className = `p-3 rounded-lg border transition cursor-pointer flex justify-between items-center ${
+                    isSelected ? 'bg-cyan-950/70 border-cyan-400 border-glow-cyan' : 'bg-black/60 border-gray-800 hover:border-gray-700'
+                }`;
+                item.onclick = () => selectTarget(id);
+
+                item.innerHTML = `
+                    <div>
+                        <div class="text-xs font-bold text-cyan-300 flex items-center">
+                            <i class="fa-solid fa-user-gear mr-2 text-cyan-500"></i> ${p.handle}
+                        </div>
+                        <div class="text-[10px] text-gray-400">パスワード長さ: ${p.password ? p.password.length : 4}文字</div>
+                    </div>
+                    <span class="text-[10px] px-2 py-0.5 bg-gray-800 text-yellow-400 rounded border border-gray-700">
+                        FW LV.${p.fwLevel || 1}
+                    </span>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function selectTarget(id) {
+            playSound('click');
+            activeTargetId = id;
+            const target = roomPlayers[id];
+
+            document.getElementById('lblActiveTargetName').innerText = target.handle;
+            document.getElementById('lblActiveTargetFw').innerText = `FW: LV.${target.fwLevel || 1}`;
+            document.getElementById('lblActiveTargetStatus').innerText = 'TARGET ACQUIRED';
+            document.getElementById('lblActiveTargetStatus').className = 'text-[10px] px-2 py-0.5 bg-cyan-900/60 text-cyan-300 border border-cyan-500/40 rounded';
+
+            if (!targetHints[id]) {
+                targetHints[id] = Array(target.password.length).fill('?');
+            }
+
+            updateCrackedHintProgress();
+            refreshTargetsList();
+        }
+
+        // --- DEFENSE UPGRADES ---
+        function upgradeDefenses() {
+            if (me.coins < 30) {
+                playSound('fail');
+                alert('コインが足りません！ミニゲームを遊んでコインを貯めてください。');
+                return;
+            }
+            playSound('win');
+            me.coins -= 30;
+            me.fwLevel += 1;
+            saveSelf();
+            updateSelfUI();
+        }
+
+        function updateSelfUI() {
+            document.getElementById('lblMyCoins').innerText = `🪙 ${me.coins}`;
+            document.getElementById('lblFwLevel').innerText = `LV.${me.fwLevel} (高セキュリティ)`;
+        }
+
+        // --- MINI-GAME LOGIC ---
+        function switchGameTab(tab) {
+            playSound('click');
+            activeTab = tab;
+
+            ['1', '2', '3', 'Crack'].forEach(t => {
+                const btn = document.getElementById(`tabGame${t}`) || document.getElementById('tabCrack');
+                const view = document.getElementById(`viewGame${t}`) || document.getElementById('viewCrack');
+
+                if (t.toLowerCase() === String(tab).toLowerCase()) {
+                    if (view) view.classList.remove('hidden');
+                    if (btn) {
+                        btn.classList.add('bg-cyan-500/20', 'border-cyan-400', 'text-cyan-300');
+                        btn.classList.remove('bg-gray-800', 'border-transparent', 'text-gray-400');
+                    }
+                } else {
+                    if (view) view.classList.add('hidden');
+                    if (btn) {
+                        btn.classList.remove('bg-cyan-500/20', 'border-cyan-400', 'text-cyan-300');
+                        btn.classList.add('bg-gray-800', 'border-transparent', 'text-gray-400');
+                    }
+                }
+            });
+        }
+
+        // GAME 1: HI-LO
+        function playHiLoGame() {
+            const input = parseInt(document.getElementById('inputHiLo').value);
+            const lbl = document.getElementById('lblHiLoResult');
+
+            if (!input || input < 1 || input > 100) return;
+
+            if (input === hiLoTarget) {
+                playSound('win');
+                lbl.innerText = `🎯 アタリ！ピンキー (${hiLoTarget}) を探知に成功！`;
+                lbl.className = 'text-sm font-bold text-green-400 glow-green';
+                me.coins += 15;
+                updateSelfUI();
+                hiLoTarget = Math.floor(Math.random() * 100) + 1; // Reset target
+            } else if (input < hiLoTarget) {
+                playSound('fail');
+                lbl.innerText = `▲ もっと【大きい】数字です！ (${input}より上)`;
+                lbl.className = 'text-sm font-bold text-yellow-400';
+            } else {
+                playSound('fail');
+                lbl.innerText = `▼ もっと【小さい】数字です！ (${input}より下)`;
+                lbl.className = 'text-sm font-bold text-yellow-400';
+            }
+        }
+
+        // GAME 2: PATTERN
+        function startPatternGame() {
+            playSound('click');
+            patternSequence = [
+                Math.floor(Math.random() * 3),
+                Math.floor(Math.random() * 3),
+                Math.floor(Math.random() * 3)
+            ];
+            userPatternStep = 0;
+            patternPlaying = true;
+
+            const lbl = document.getElementById('lblPatternStatus');
+            lbl.innerText = '光る順番を覚えるんだ...';
+
+            patternSequence.forEach((nodeIdx, step) => {
+                setTimeout(() => {
+                    highlightNode(nodeIdx);
+                }, (step + 1) * 600);
+            });
+
+            setTimeout(() => {
+                lbl.innerText = '同じ順番でタップしてください！';
+                patternPlaying = false;
+            }, (patternSequence.length + 1) * 600);
+        }
+
+        function highlightNode(idx) {
+            playSound('click');
+            const btn = document.getElementById(`pNode${idx}`);
+            btn.classList.add('bg-cyan-400', 'text-black', 'scale-110');
+            setTimeout(() => {
+                btn.classList.remove('bg-cyan-400', 'text-black', 'scale-110');
+            }, 300);
+        }
+
+        function tapPatternNode(idx) {
+            if (patternPlaying || patternSequence.length === 0) return;
+
+            highlightNode(idx);
+
+            if (patternSequence[userPatternStep] === idx) {
+                userPatternStep++;
+                if (userPatternStep === patternSequence.length) {
+                    playSound('win');
+                    document.getElementById('lblPatternStatus').innerText = '🎉 パターン解除成功！ (+🪙 20コイン)';
+                    me.coins += 20;
+                    updateSelfUI();
+                    patternSequence = [];
+                }
+            } else {
+                playSound('fail');
+                document.getElementById('lblPatternStatus').innerText = '❌ パターン失敗！やり直してください。';
+                patternSequence = [];
+            }
+        }
+
+        // GAME 3: SLOT
+        function toggleSlotSpin() {
+            const btn = document.getElementById('btnSlotControl');
+
+            if (!slotSpinning) {
+                playSound('click');
+                slotSpinning = true;
+                btn.innerText = 'ストップ！';
+                btn.className = 'px-8 py-2.5 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-lg transition';
+
+                slotInterval = setInterval(() => {
+                    for (let i = 0; i < 3; i++) {
+                        document.getElementById(`slot${i}`).innerText = Math.floor(Math.random() * 9) + 1;
+                    }
+                }, 80);
+            } else {
+                clearInterval(slotInterval);
+                slotSpinning = false;
+                btn.innerText = 'スロット回転スタート';
+                btn.className = 'px-8 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-black font-bold text-xs rounded-lg transition';
+
+                const s0 = document.getElementById('slot0').innerText;
+                const s1 = document.getElementById('slot1').innerText;
+                const s2 = document.getElementById('slot2').innerText;
+
+                if (s0 === s1 && s1 === s2) {
+                    playSound('win');
+                    alert(`大当たり！ [${s0} ${s1} ${s2}] 揃いました！ (+🪙 25コイン)`);
+                    me.coins += 25;
+                } else {
+                    playSound('fail');
+                }
+                updateSelfUI();
+            }
+        }
+
+        // --- HINT SCANNERS & FINAL CRACK ---
+        function buyScannerHint() {
+            if (!activeTargetId) {
+                alert('先に攻撃対象のターゲットを選択してください。');
+                return;
+            }
+            if (me.coins < 20) {
+                playSound('fail');
+                alert('ヒントスキャナーの実行には 🪙 20コイン必要です。');
+                return;
+            }
+
+            const target = roomPlayers[activeTargetId];
+            const hints = targetHints[activeTargetId];
+            const pass = target.password;
+
+            // Find an unrevealed index
+            const unrevealedIndices = [];
+            for (let i = 0; i < pass.length; i++) {
+                if (hints[i] === '?') unrevealedIndices.push(i);
+            }
+
+            if (unrevealedIndices.length === 0) {
+                alert('すべてのヒントが判明しています！最後のパスワードを入力してください。');
+                return;
+            }
+
+            playSound('win');
+            me.coins -= 20;
+            updateSelfUI();
+
+            const revealIdx = unrevealedIndices[Math.floor(Math.random() * unrevealedIndices.length)];
+            hints[revealIdx] = pass[revealIdx];
+
+            updateCrackedHintProgress();
+        }
+
+        function updateCrackedHintProgress() {
+            if (!activeTargetId || !targetHints[activeTargetId]) {
+                document.getElementById('lblCrackedPasswordProgress').innerText = '? ? ? ?';
+                return;
+            }
+            document.getElementById('lblCrackedPasswordProgress').innerText = targetHints[activeTargetId].join(' ');
+        }
+
+        function submitFinalHack() {
+            if (!activeTargetId) {
+                alert('ターゲットを選択してください。');
+                return;
+            }
+
+            const guess = document.getElementById('inputFinalGuess').value.trim().toUpperCase();
+            const target = roomPlayers[activeTargetId];
+
+            if (!guess) return;
+
+            if (guess === target.password) {
+                playSound('win');
+                broadcastAction('GAME_OVER', { winner: me.handle, victim: target.handle, password: target.password });
+                showVictoryModal(me.handle, target.handle, target.password);
+            } else {
+                playSound('fail');
+                alert('ハック失敗！パスワードが違います。');
+            }
+        }
+
+        function showVictoryModal(winner, victim, pass) {
+            document.getElementById('resWinner').innerText = winner;
+            document.getElementById('resTarget').innerText = victim;
+            document.getElementById('resPassword').innerText = pass;
+            openModal('resultModal');
+        }
+
+        function openModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.remove('hidden');
+        }
+
+        function closeModal(id) {
+            playSound('click');
+            document.getElementById(id).classList.add('hidden');
+        }
+
+        // MATRIX BACKGROUND ANIMATION
+        const canvas = document.getElementById('matrixCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const katakana = 'アァカサタナハマヤャラワガザダバパイィキシチニヒミリヰギジヂビピウゥクスツヌフムユュルグズブヅプエェケセテネヘメレヱゲゼデベペオォコソトノホモヨョロヲゴゾドボポヴッン';
+        const fontSize = 16;
+        let columns = Math.floor(canvas.width / fontSize);
+        let drops = Array(columns).fill(1);
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(5, 8, 17, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#00ff66';
+            ctx.font = fontSize + 'px monospace';
+
+            for (let i = 0; i < drops.length; i++) {
+                const text = katakana.charAt(Math.floor(Math.random() * katakana.length));
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        window.onload = function() {
+            setInterval(drawMatrix, 33);
+        };
+    </script>
+</body>
+</html>

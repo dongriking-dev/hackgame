@@ -3,14 +3,11 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ドッキング</title>
-  <link rel="icon" type="image/png" href="favicon.png">
-<!-- またはDataURLを直接使う場合 -->
-<link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAACAAAAAgCAYAAABzenr0AAABZElEQVR4AexUMcqDYAxN2h6h3dq54BGcxMHRmzg4uQlu4uDkRRydvIezTh5B0f+PxWL8YltLoVCEpua95CWPIO4AoP9mkIH//d/7bQZ+/wJZlkHf99B1nfiiKReg5jFExQrycDiAZVmDAhHBMIwhn/4pBqZFMjLFa/OmaZhE0zSGCTADuq4Tx4JMHI9Hxr0CSDfvO51OcwqYAdM0lQYi6rqGNE0pfSmk5SQMgoAeLJiBtm1ZcQps2wZpwLSH8qXlVJOCGQjDUOq5c77vQxzHdzxP1i4nPTNAxLNwXVdseWc5DVIMvDuIhj0Kz/PEsmJgt1MoUbiWjKJIlKzetvRFQ0RxAZGIyzXRAKIsKMsS9vs9zRQDEcFxHFbL85zhORANUBMiAiLC9XqF8/k85JfLhUoPI0mSoRfxpl/6toxDFg2MDUVRQFVVI/z486mBj2+cDdwMbBfYLrBdYLvA719g9ulX4B8AAAD//0qbhuoAAAAGSURBVAMAh4R3IQzHqd8AAAAASUVORK5CYII=">
+  <title>CYBER HACK & DEFEND - Realtime Tactical Online</title>
   <style>
     :root {
       --bg: #030a0e;
-      --panel-bg: rgba(10, 25, 35, 0.85);
+      --panel-bg: rgba(10, 25, 35, 0.9);
       --border: #00ffcc;
       --border-dim: #005544;
       --text: #00ffcc;
@@ -45,7 +42,7 @@
 
     .container {
       width: 100%;
-      max-width: 900px;
+      max-width: 950px;
       margin: 0 auto;
     }
 
@@ -77,7 +74,6 @@
       color: var(--border);
     }
 
-    /* Form UI */
     .form-group {
       margin-bottom: 15px;
     }
@@ -109,11 +105,13 @@
     .btn-group {
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
     }
 
     button {
       flex: 1;
-      padding: 12px;
+      min-width: 120px;
+      padding: 10px 15px;
       background: rgba(0, 255, 204, 0.1);
       border: 1px solid var(--border);
       color: var(--border);
@@ -141,11 +139,20 @@
       box-shadow: 0 0 15px var(--danger);
     }
 
-    /* Screen Management */
+    button.btn-warning {
+      border-color: var(--warning);
+      color: var(--warning);
+      background: rgba(255, 170, 0, 0.1);
+    }
+
+    button.btn-warning:hover {
+      background: var(--warning);
+      color: #000;
+    }
+
     .screen { display: none; }
     .screen.active { display: block; }
 
-    /* Rules & Tutorial */
     .rules-list {
       list-style-type: none;
       font-size: 0.95rem;
@@ -153,7 +160,7 @@
     }
 
     .rules-list li {
-      margin-bottom: 10px;
+      margin-bottom: 8px;
       padding-left: 20px;
       position: relative;
     }
@@ -165,20 +172,20 @@
       color: var(--border);
     }
 
-    /* Game HUD */
     .hud {
       display: flex;
       justify-content: space-between;
       background: rgba(0,0,0,0.5);
-      padding: 10px;
+      padding: 12px;
       border-radius: 4px;
       margin-bottom: 15px;
       font-size: 0.9rem;
+      border: 1px solid var(--border-dim);
     }
 
     .player-list {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 15px;
     }
 
@@ -187,10 +194,12 @@
       padding: 15px;
       border-radius: 6px;
       background: rgba(0,20,30,0.6);
+      position: relative;
     }
 
     .player-card.is-me {
       border-color: var(--accent);
+      background: rgba(0,30,50,0.6);
     }
 
     .status-badge {
@@ -202,45 +211,31 @@
       color: #fff;
     }
 
-    .status-cracked {
-      background: var(--danger);
+    .status-cracked { background: var(--danger); }
+
+    .known-pass-display {
+      background: rgba(0,0,0,0.8);
+      border: 1px dashed var(--warning);
+      padding: 8px;
+      border-radius: 4px;
+      margin: 10px 0;
+      letter-spacing: 4px;
+      font-size: 1.3rem;
+      text-align: center;
+      color: var(--warning);
+      font-weight: bold;
     }
 
-    /* Mini Game Container */
-    .minigame-area {
+    .action-panel {
       background: #000;
       border: 1px solid var(--border-dim);
       padding: 20px;
       border-radius: 6px;
-      text-align: center;
       margin-top: 15px;
     }
 
-    .pinpoint-meter {
-      width: 100%;
-      height: 20px;
-      background: #222;
-      margin: 15px 0;
-      border-radius: 10px;
-      overflow: hidden;
-      position: relative;
-    }
-
-    .pinpoint-bar {
-      height: 100%;
-      width: 0%;
-      background: var(--border);
-      transition: width 0.3s;
-    }
-
-    .hint-box {
-      font-size: 1.2rem;
-      color: var(--warning);
-      margin: 10px 0;
-    }
-
     .logs {
-      height: 120px;
+      height: 140px;
       overflow-y: auto;
       background: rgba(0,0,0,0.8);
       border: 1px solid var(--border-dim);
@@ -252,9 +247,10 @@
 
     .log-item { margin-bottom: 4px; }
     .log-item.error { color: var(--danger); }
+    .log-item.warn { color: var(--warning); }
   </style>
 
-  <!-- Firebase v10 Compat SDKs -->
+  <!-- Firebase SDKs -->
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
@@ -264,18 +260,19 @@
   <div class="container">
     <header>
       <h1>CYBER HACK & DEFEND</h1>
-      <p style="font-size:0.8rem; color:var(--text-dim);">REALTIME MULTIPLAYER SYSTEM</p>
+      <p style="font-size:0.8rem; color:var(--text-dim);">TACTICAL REALTIME CRACKING</p>
     </header>
 
-    <!-- 1. Rules / Welcome Screen -->
+    <!-- 1. Screen: Welcome & Rules -->
     <div id="screen-welcome" class="screen active card">
-      <h2>ルール説明</h2>
+      <h2>ゲームルール説明</h2>
       <ul class="rules-list">
-        <li><b>1. パスワードの設定:</b> 自分だけの秘密のパスワード（4〜8文字）を決めて参戦します。</li>
-        <li><b>2. ルーム共有:</b> 友達と同じ「ルームID」を入力して部屋に入ります。</li>
-        <li><b>3. 脆弱性攻撃:</b> ミニゲームに挑戦してコインを獲得し、敵のパスワードを解析（ハック）します。</li>
-        <li><b>4. 防衛・ファイアウォール:</b> コインでファイアウォールを強化して相手からの攻撃を防ぎましょう。</li>
-        <li><b>5. 勝利条件:</b> 相手のパスワードを解読して完全にハックしたプレイヤーの勝利です！</li>
+        <li><b>1. パスワード設定:</b> 自分だけの秘密のパスワード（4〜8文字）を決めて参戦します。</li>
+        <li><b>2. 資金獲得:</b> 「マイニング」で資金（CREDITS）を稼ぎます。</li>
+        <li><b>3. 文字数スキャン (50$):</b> 相手のパスワードの「全体の文字数」を特定します。</li>
+        <li><b>4. ブルートフォース解析 (80$):</b> 相手のパスワードから「ランダムな1文字の位置と文字」を直接解読します。</li>
+        <li><b>5. 防衛強化:</b> ファイアウォールレベルを上げると、相手にハックされにくくなります。</li>
+        <li><b>6. 勝利条件:</b> 解析結果を組み合わせて敵の実際のパスワードを入力し、完全にハックすれば勝利！</li>
       </ul>
 
       <div class="form-group" style="margin-top:20px;">
@@ -284,7 +281,7 @@
       </div>
       <div class="form-group">
         <label>あなたの秘密のパスワード（4〜8文字）</label>
-        <input type="password" id="input-password" placeholder="例: sec1234" maxlength="8">
+        <input type="password" id="input-password" placeholder="例: pass123" maxlength="8">
       </div>
       <div class="form-group">
         <label>ルームID（友達と共通の番号）</label>
@@ -292,60 +289,57 @@
       </div>
 
       <div class="btn-group">
-        <button onclick="joinGame()">ゲーム開始 / ルームに参加</button>
+        <button onclick="joinGame()">ゲーム開始 / ルーム参加</button>
       </div>
     </div>
 
-    <!-- 2. Main Game Screen -->
+    <!-- 2. Screen: Main Game -->
     <div id="screen-game" class="screen card">
       <div class="hud">
         <div>PLAYER: <span id="hud-name" style="color:#fff;">-</span></div>
         <div>ROOM: <span id="hud-room" style="color:var(--border);">-</span></div>
-        <div>CREDITS: <span id="hud-coins" style="color:var(--warning);">0</span> $</div>
+        <div>FW LEVEL: Lvl <span id="hud-fw" style="color:var(--accent);">1</span></div>
+        <div>CREDITS: <span id="hud-coins" style="color:var(--warning);">100</span> $</div>
+      </div>
+
+      <div style="margin-bottom:15px;" class="btn-group">
+        <button onclick="earnCoins()">データマイニング (+30$)</button>
+        <button class="btn-warning" onclick="upgradeFirewall()">FW強化 (100$)</button>
       </div>
 
       <h2>ターゲット一覧（友達）</h2>
       <div id="player-list" class="player-list"></div>
 
-      <!-- Hack Mini Game Modal / Section -->
-      <div id="hack-section" class="minigame-area" style="display:none;">
-        <h3>ハッキング進行中: ターゲット <span id="target-name" style="color:var(--danger);"></span></h3>
-        <p style="font-size:0.85rem; color:var(--text-dim);">ピンポイント脆弱性スキャナー：数字（0〜99）を当ててアクセス権を獲得せよ</p>
+      <!-- Action Panel -->
+      <div id="action-panel" class="action-panel" style="display:none;">
+        <h3>ターゲット操作: <span id="target-name" style="color:var(--danger);"></span></h3>
         
-        <div class="hint-box" id="scan-hint">スキャン準備完了</div>
-        <div class="pinpoint-meter"><div class="pinpoint-bar" id="scan-bar"></div></div>
+        <div style="margin:10px 0;">解析済みのパスワード情報:</div>
+        <div class="known-pass-display" id="target-pass-mask">????</div>
 
-        <div class="form-group" style="display:flex; gap:10px; max-width:300px; margin:0 auto;">
-          <input type="number" id="input-target-code" min="0" max="99" placeholder="0-99">
-          <button onclick="submitTargetCode()">スキャン</button>
+        <div class="btn-group" style="margin:15px 0;">
+          <button onclick="scanLength()">文字数判定 (50$)</button>
+          <button onclick="scanOneChar()">1文字解読スキャン (80$)</button>
         </div>
 
-        <button class="btn-danger" style="margin-top:15px;" onclick="closeHack()">キャンセル</button>
+        <div class="form-group" style="margin-top:15px;">
+          <label>推測したパスワードを入力して実行</label>
+          <div style="display:flex; gap:10px;">
+            <input type="text" id="input-crack-pass" placeholder="解読したパスワード">
+            <button class="btn-danger" onclick="submitCrack()">完全ハック実行</button>
+          </div>
+        </div>
+
+        <button style="margin-top:10px; width:100%;" onclick="closeActionPanel()">閉じる</button>
       </div>
 
-      <!-- Pass Crack Section -->
-      <div id="crack-section" class="minigame-area" style="display:none;">
-        <h3>パスワード最終入力: <span id="crack-target-name" style="color:var(--danger);"></span></h3>
-        <p style="font-size:0.85rem; color:var(--text-dim);">解析したパスワードを入力してハックを完了させてください</p>
-
-        <div class="form-group" style="max-width:300px; margin:15px auto;">
-          <input type="text" id="input-crack-pass" placeholder="推定パスワード">
-        </div>
-        <div class="btn-group" style="max-width:300px; margin:0 auto;">
-          <button onclick="submitCrack()">ハック実行！</button>
-          <button class="btn-danger" onclick="closeCrack()">中止</button>
-        </div>
-      </div>
-
-      <h2 style="margin-top:25px;">システムログ</h2>
+      <h2 style="margin-top:25px;">システムアクティビティログ</h2>
       <div id="system-logs" class="logs"></div>
     </div>
   </div>
 
   <script>
-    // -------------------------------------------------------------
-    // Firebase Realtime Database Config
-    // -------------------------------------------------------------
+    // Firebase Config
     const firebaseConfig = {
       apiKey: "AIzaSyBZhZTrcRmz6syRL8V1qc5UzYgT9wjy5ck",
       authDomain: "dockgam-9fe2c.firebaseapp.com",
@@ -360,7 +354,7 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
 
-    // Game Local State
+    // Local Game State
     let myUserId = 'user_' + Math.random().toString(36).substring(2, 9);
     let myRoomId = '';
     let myName = '';
@@ -369,11 +363,9 @@
     let firewallLevel = 1;
 
     let activeTargetId = null;
-    let targetCode = 0;
+    let knownMasks = {}; // ターゲットごとの解読状況をローカルに保持 { userId: ['p', 'a', '?', '?'] }
 
-    // -------------------------------------------------------------
-    // Canvas Background Animation
-    // -------------------------------------------------------------
+    // Background Matrix Effect
     const canvas = document.getElementById('matrix-bg');
     const ctx = canvas.getContext('2d');
     canvas.width = window.innerWidth;
@@ -396,13 +388,10 @@
     }
     setInterval(drawMatrix, 50);
 
-    // -------------------------------------------------------------
-    // Game Operations
-    // -------------------------------------------------------------
-    function log(msg, isError = false) {
+    function log(msg, type = 'normal') {
       const logs = document.getElementById('system-logs');
       const item = document.createElement('div');
-      item.className = 'log-item' + (isError ? ' error' : '');
+      item.className = 'log-item' + (type === 'error' ? ' error' : type === 'warn' ? ' warn' : '');
       const time = new Date().toLocaleTimeString();
       item.textContent = `[${time}] ${msg}`;
       logs.appendChild(item);
@@ -415,16 +404,15 @@
       myRoomId = document.getElementById('input-roomid').value.trim().toUpperCase();
 
       if (!myName || !myPassword || !myRoomId) {
-        alert('全ての項目（名前、パスワード、ルームID）を入力してください。');
+        alert('全ての項目を入力してください。');
         return;
       }
 
       if (myPassword.length < 4 || myPassword.length > 8) {
-        alert('パスワードは4〜8文字で設定してください。');
+        alert('パスワードは4〜8文字にしてください。');
         return;
       }
 
-      // Save to Firebase Realtime Database
       const playerRef = db.ref(`rooms/${myRoomId}/players/${myUserId}`);
       playerRef.set({
         name: myName,
@@ -433,7 +421,6 @@
         isCracked: false,
         joinedAt: Date.now()
       }).then(() => {
-        // Disconnect handle
         playerRef.onDisconnect().remove();
 
         document.getElementById('screen-welcome').classList.remove('active');
@@ -443,10 +430,10 @@
         document.getElementById('hud-room').textContent = myRoomId;
         updateCoins(0);
 
-        log(`ルーム [${myRoomId}] に接続完了。セキュリティシステム起動。`);
+        log(`ルーム [${myRoomId}] に接続しました。ターゲットを探してハックを開始してください。`);
         listenToRoomUpdates();
       }).catch(err => {
-        alert('データベース接続エラー: ' + err.message);
+        alert('接続エラー: ' + err.message);
       });
     }
 
@@ -455,9 +442,25 @@
       document.getElementById('hud-coins').textContent = myCoins;
     }
 
+    function earnCoins() {
+      updateCoins(30);
+      log('マイニング完了: 30 CREDITS 獲得');
+    }
+
+    function upgradeFirewall() {
+      if (myCoins < 100) {
+        alert('クレジットが足りません（必要: 100$）');
+        return;
+      }
+      updateCoins(-100);
+      firewallLevel++;
+      document.getElementById('hud-fw').textContent = firewallLevel;
+      db.ref(`rooms/${myRoomId}/players/${myUserId}`).update({ firewall: firewallLevel });
+      log(`ファイアウォール強化完了: Lvl ${firewallLevel}`);
+    }
+
     function listenToRoomUpdates() {
-      const playersRef = db.ref(`rooms/${myRoomId}/players`);
-      playersRef.on('value', (snapshot) => {
+      db.ref(`rooms/${myRoomId}/players`).on('value', (snapshot) => {
         const players = snapshot.val() || {};
         renderPlayerList(players);
       });
@@ -473,7 +476,7 @@
 
         const card = document.createElement('div');
         card.className = `player-card ${isMe ? 'is-me' : ''}`;
-        
+
         card.innerHTML = `
           <h3>${p.name} ${isMe ? '(あなた)' : ''}</h3>
           <p style="font-size:0.85rem; margin:8px 0;">FWレベル: Lvl ${p.firewall || 1}</p>
@@ -481,87 +484,109 @@
             ${p.isCracked ? 'CRACKED (ハック済)' : 'PROTECTED (保護中)'}
           </span></p>
           ${!isMe && !p.isCracked ? `
-            <div style="margin-top:12px; display:flex; gap:6px;">
-              <button onclick="startHack('${id}', '${p.name}')">脆弱性スキャン</button>
-              <button class="btn-danger" onclick="startCrack('${id}', '${p.name}')">ハック実行</button>
-            </div>
+            <button style="margin-top:10px; width:100%;" onclick="openActionPanel('${id}', '${p.name}')">ハック画面を開く</button>
           ` : ''}
         `;
         listEl.appendChild(card);
       });
     }
 
-    // -------------------------------------------------------------
-    // Mini-Game: Vulnerability Scan
-    // -------------------------------------------------------------
-    function startHack(targetId, name) {
+    function openActionPanel(targetId, name) {
       activeTargetId = targetId;
-      targetCode = Math.floor(Math.random() * 100);
       document.getElementById('target-name').textContent = name;
-      document.getElementById('scan-hint').textContent = '数値 (0〜99) を入力してアクセスポートを特定せよ';
-      document.getElementById('scan-bar').style.width = '0%';
-      document.getElementById('hack-section').style.display = 'block';
-      document.getElementById('crack-section').style.display = 'none';
-    }
+      document.getElementById('action-panel').style.display = 'block';
 
-    function submitTargetCode() {
-      const val = parseInt(document.getElementById('input-target-code').value);
-      if (isNaN(val)) return;
-
-      const diff = Math.abs(val - targetCode);
-      const accuracy = Math.max(0, 100 - diff);
-      document.getElementById('scan-bar').style.width = `${accuracy}%`;
-
-      if (val === targetCode) {
-        document.getElementById('scan-hint').textContent = '成功！アクセスコード整合完了 (+50 CREDITS)';
-        updateCoins(50);
-        log(`スキャン成功: クレジット +50 獲得`);
-        setTimeout(closeHack, 1500);
-      } else if (val < targetCode) {
-        document.getElementById('scan-hint').textContent = 'エラー: ポート番号が低すぎます (HIGH)';
-      } else {
-        document.getElementById('scan-hint').textContent = 'エラー: ポート番号が高すぎます (LOW)';
+      if (!knownMasks[targetId]) {
+        knownMasks[targetId] = ['?', '?', '?', '?']; // 初期マスク
       }
+      updateMaskDisplay();
     }
 
-    function closeHack() {
-      document.getElementById('hack-section').style.display = 'none';
-      document.getElementById('input-target-code').value = '';
+    function updateMaskDisplay() {
+      const mask = knownMasks[activeTargetId] || ['?', '?', '?', '?'];
+      document.getElementById('target-pass-mask').textContent = mask.join(' ');
     }
 
-    // -------------------------------------------------------------
-    // Password Cracking Execution
-    // -------------------------------------------------------------
-    function startCrack(targetId, name) {
-      activeTargetId = targetId;
-      document.getElementById('crack-target-name').textContent = name;
-      document.getElementById('crack-section').style.display = 'block';
-      document.getElementById('hack-section').style.display = 'none';
+    function closeActionPanel() {
+      document.getElementById('action-panel').style.display = 'none';
+      activeTargetId = null;
     }
 
-    function submitCrack() {
-      const guessedPass = document.getElementById('input-crack-pass').value.trim();
-      if (!guessedPass) return;
+    // 1. 相手の実際のパスワード文字数を取得する
+    function scanLength() {
+      if (myCoins < 50) { alert('クレジット不足 (50$)'); return; }
 
       db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
         const target = snap.val();
-        if (target && target.password === guessedPass) {
-          log(`成功！ ${target.name} のパスワード解読に成功しました！`, false);
-          db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).update({
-            isCracked: true
-          });
-          alert(`ハック完了！ ${target.name} のパスワードは合致しました！`);
-          closeCrack();
-        } else {
-          log(`失敗: 解読失敗。セキュリティブロックが発動しました。`, true);
-          alert('パスワードが違います！');
-        }
+        if (!target) return;
+
+        updateCoins(-50);
+        const len = target.password.length;
+        
+        // 配列長を実際の文字数に合わせる
+        let mask = knownMasks[activeTargetId] || [];
+        while (mask.length < len) mask.push('?');
+        mask = mask.slice(0, len);
+        knownMasks[activeTargetId] = mask;
+
+        updateMaskDisplay();
+        log(`スキャン成功: ${target.name} のパスワード長は ${len} 文字です。`, 'warn');
       });
     }
 
-    function closeCrack() {
-      document.getElementById('crack-section').style.display = 'none';
-      document.getElementById('input-crack-pass').value = '';
+    // 2. 相手の実際のパスワードから未解読の1文字を特定する
+    function scanOneChar() {
+      if (myCoins < 80) { alert('クレジット不足 (80$)'); return; }
+
+      db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
+        const target = snap.val();
+        if (!target) return;
+
+        const actualPass = target.password;
+        let mask = knownMasks[activeTargetId] || Array(actualPass.length).fill('?');
+
+        // 未解読のインデックスを探す
+        let unknownIndices = [];
+        for (let i = 0; i < actualPass.length; i++) {
+          if (mask[i] === '?' || mask[i] === undefined) unknownIndices.push(i);
+        }
+
+        if (unknownIndices.length === 0) {
+          alert('全ての文字スキャンが完了しています！');
+          return;
+        }
+
+        updateCoins(-80);
+
+        // ランダムに1文字解読
+        const randIdx = unknownIndices[Math.floor(Math.random() * unknownIndices.length)];
+        mask[randIdx] = actualPass[randIdx];
+        knownMasks[activeTargetId] = mask;
+
+        updateMaskDisplay();
+        log(`ブルートフォース成功: ${randIdx + 1}番目の文字は '${actualPass[randIdx]}' です！`, 'warn');
+      });
+    }
+
+    // 3. 実際のパスワードを照合してハック実行
+    function submitCrack() {
+      const inputPass = document.getElementById('input-crack-pass').value.trim();
+      if (!inputPass) return;
+
+      db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
+        const target = snap.val();
+        if (target && target.password === inputPass) {
+          log(`大成功！ ${target.name} のシステムを完全制圧しました！`, 'warn');
+          db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).update({
+            isCracked: true
+          });
+          alert(`ハック成功！ ${target.name} を撃破しました！`);
+          closeActionPanel();
+        } else {
+          log(`失敗: パスワード不一致。相手のセキュリティにより検知されました。`, 'error');
+          alert('パスワードが間違っています！');
+        }
+      });
     }
   </script>
 </body>

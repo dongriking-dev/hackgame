@@ -1,593 +1,954 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ドッキング</title>
-  <style>
-    :root {
-      --bg: #030a0e;
-      --panel-bg: rgba(10, 25, 35, 0.9);
-      --border: #00ffcc;
-      --border-dim: #005544;
-      --text: #00ffcc;
-      --text-dim: #00aa88;
-      --danger: #ff0055;
-      --warning: #ffaa00;
-      --accent: #00aaff;
-      --font-mono: 'Courier New', Courier, monospace;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-mono); }
-
-    body {
-      background-color: var(--bg);
-      color: var(--text);
-      overflow-x: hidden;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 20px;
-      background-image: radial-gradient(circle at 50% 50%, #001a1a 0%, #030a0e 100%);
-    }
-
-    #matrix-bg {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      z-index: -1;
-      opacity: 0.15;
-      pointer-events: none;
-    }
-
-    .container {
-      width: 100%;
-      max-width: 950px;
-      margin: 0 auto;
-    }
-
-    header {
-      text-align: center;
-      margin-bottom: 20px;
-      border-bottom: 2px solid var(--border);
-      padding-bottom: 10px;
-      text-shadow: 0 0 10px var(--border);
-    }
-
-    h1 { font-size: 2rem; letter-spacing: 2px; }
-
-    .card {
-      background: var(--panel-bg);
-      border: 1px solid var(--border);
-      box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 20px;
-      backdrop-filter: blur(5px);
-    }
-
-    h2 {
-      font-size: 1.3rem;
-      border-bottom: 1px solid var(--border-dim);
-      padding-bottom: 8px;
-      margin-bottom: 15px;
-      color: var(--border);
-    }
-
-    .form-group {
-      margin-bottom: 15px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 5px;
-      color: var(--text-dim);
-      font-size: 0.9rem;
-    }
-
-    input[type="text"], input[type="password"] {
-      width: 100%;
-      padding: 10px;
-      background: rgba(0, 0, 0, 0.6);
-      border: 1px solid var(--border-dim);
-      color: var(--border);
-      font-size: 1.1rem;
-      border-radius: 4px;
-      outline: none;
-      transition: all 0.3s;
-    }
-
-    input:focus {
-      border-color: var(--border);
-      box-shadow: 0 0 8px var(--border);
-    }
-
-    .btn-group {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-    }
-
-    button {
-      flex: 1;
-      min-width: 120px;
-      padding: 10px 15px;
-      background: rgba(0, 255, 204, 0.1);
-      border: 1px solid var(--border);
-      color: var(--border);
-      font-weight: bold;
-      cursor: pointer;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-
-    button:hover {
-      background: var(--border);
-      color: #000;
-      box-shadow: 0 0 15px var(--border);
-    }
-
-    button.btn-danger {
-      border-color: var(--danger);
-      color: var(--danger);
-      background: rgba(255, 0, 85, 0.1);
-    }
-
-    button.btn-danger:hover {
-      background: var(--danger);
-      color: #fff;
-      box-shadow: 0 0 15px var(--danger);
-    }
-
-    button.btn-warning {
-      border-color: var(--warning);
-      color: var(--warning);
-      background: rgba(255, 170, 0, 0.1);
-    }
-
-    button.btn-warning:hover {
-      background: var(--warning);
-      color: #000;
-    }
-
-    .screen { display: none; }
-    .screen.active { display: block; }
-
-    .rules-list {
-      list-style-type: none;
-      font-size: 0.95rem;
-      line-height: 1.6;
-    }
-
-    .rules-list li {
-      margin-bottom: 8px;
-      padding-left: 20px;
-      position: relative;
-    }
-
-    .rules-list li::before {
-      content: "▶";
-      position: absolute;
-      left: 0;
-      color: var(--border);
-    }
-
-    .hud {
-      display: flex;
-      justify-content: space-between;
-      background: rgba(0,0,0,0.5);
-      padding: 12px;
-      border-radius: 4px;
-      margin-bottom: 15px;
-      font-size: 0.9rem;
-      border: 1px solid var(--border-dim);
-    }
-
-    .player-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-      gap: 15px;
-    }
-
-    .player-card {
-      border: 1px solid var(--border-dim);
-      padding: 15px;
-      border-radius: 6px;
-      background: rgba(0,20,30,0.6);
-      position: relative;
-    }
-
-    .player-card.is-me {
-      border-color: var(--accent);
-      background: rgba(0,30,50,0.6);
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 3px;
-      font-size: 0.8rem;
-      background: var(--border-dim);
-      color: #fff;
-    }
-
-    .status-cracked { background: var(--danger); }
-
-    .known-pass-display {
-      background: rgba(0,0,0,0.8);
-      border: 1px dashed var(--warning);
-      padding: 8px;
-      border-radius: 4px;
-      margin: 10px 0;
-      letter-spacing: 4px;
-      font-size: 1.3rem;
-      text-align: center;
-      color: var(--warning);
-      font-weight: bold;
-    }
-
-    .action-panel {
-      background: #000;
-      border: 1px solid var(--border-dim);
-      padding: 20px;
-      border-radius: 6px;
-      margin-top: 15px;
-    }
-
-    .logs {
-      height: 140px;
-      overflow-y: auto;
-      background: rgba(0,0,0,0.8);
-      border: 1px solid var(--border-dim);
-      padding: 10px;
-      font-size: 0.85rem;
-      border-radius: 4px;
-      color: #00ff66;
-    }
-
-    .log-item { margin-bottom: 4px; }
-    .log-item.error { color: var(--danger); }
-    .log-item.warn { color: var(--warning); }
-  </style>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CYBER HACK & DEFEND - TACTICAL WARFARE</title>
+<style>
+:root {
+  --bg: #030a0e;
+  --panel-bg: rgba(10, 25, 35, 0.9);
+  --border: #00ffcc;
+  --border-dim: #005544;
+  --text: #00ffcc;
+  --text-dim: #00aa88;
+  --danger: #ff0055;
+  --warning: #ffaa00;
+  --accent: #00aaff;
+  --purple: #bb00ff;
+  --font-mono: 'Courier New', Courier, monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: var(--font-mono); }
+body {
+  background-color: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  background-image: radial-gradient(circle at 50% 50%, #001a1a 0%, #030a0e 100%);
+}
+#matrix-bg {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  z-index: -1;
+  opacity: 0.15;
+  pointer-events: none;
+}
+.container { width: 100%; max-width: 1100px; margin: 0 auto; }
+header {
+  text-align: center;
+  margin-bottom: 20px;
+  border-bottom: 2px solid var(--border);
+  padding-bottom: 10px;
+  text-shadow: 0 0 10px var(--border);
+  position: relative;
+}
+h1 { font-size: 2rem; letter-spacing: 2px; }
+.card {
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  box-shadow: 0 0 15px rgba(0, 255, 204, 0.2);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+  backdrop-filter: blur(5px);
+}
+h2 {
+  font-size: 1.3rem;
+  border-bottom: 1px solid var(--border-dim);
+  padding-bottom: 8px;
+  margin-bottom: 15px;
+  color: var(--border);
+}
+h3 { font-size: 1.1rem; margin-bottom: 10px; }
+.form-group { margin-bottom: 15px; }
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+}
+input[type="text"], input[type="password"], select {
+  width: 100%;
+  padding: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid var(--border-dim);
+  color: var(--border);
+  font-size: 1.1rem;
+  border-radius: 4px;
+  outline: none;
+  transition: all 0.3s;
+}
+input:focus, select:focus {
+  border-color: var(--border);
+  box-shadow: 0 0 8px var(--border);
+}
+.btn-group { display: flex; gap: 10px; flex-wrap: wrap; }
+button {
+  flex: 1;
+  min-width: 120px;
+  padding: 10px 15px;
+  background: rgba(0, 255, 204, 0.1);
+  border: 1px solid var(--border);
+  color: var(--border);
+  font-weight: bold;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+}
+button:hover:not(:disabled) {
+  background: var(--border);
+  color: #000;
+  box-shadow: 0 0 15px var(--border);
+}
+button:disabled { opacity: 0.3; cursor: not-allowed; }
+button.btn-danger { border-color: var(--danger); color: var(--danger); background: rgba(255, 0, 85, 0.1); }
+button.btn-danger:hover:not(:disabled) { background: var(--danger); color: #fff; box-shadow: 0 0 15px var(--danger); }
+button.btn-warning { border-color: var(--warning); color: var(--warning); background: rgba(255, 170, 0, 0.1); }
+button.btn-warning:hover:not(:disabled) { background: var(--warning); color: #000; }
+button.btn-purple { border-color: var(--purple); color: var(--purple); background: rgba(187, 0, 255, 0.1); }
+button.btn-purple:hover:not(:disabled) { background: var(--purple); color: #fff; }
+button.btn-accent { border-color: var(--accent); color: var(--accent); background: rgba(0, 170, 255, 0.1); }
+button.btn-accent:hover:not(:disabled) { background: var(--accent); color: #000; }
+.screen { display: none; }
+.screen.active { display: block; }
+.rules-list { list-style-type: none; font-size: 0.95rem; line-height: 1.7; }
+.rules-list li { margin-bottom: 8px; padding-left: 20px; position: relative; }
+.rules-list li::before { content: "▶"; position: absolute; left: 0; color: var(--border); }
+.hud {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 10px;
+  background: rgba(0,0,0,0.5);
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 15px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-dim);
+}
+.hud-item { text-align: center; }
+.hud-item .label { color: var(--text-dim); font-size: 0.75rem; display: block; }
+.hud-item .value { color: #fff; font-size: 1.1rem; font-weight: bold; }
+.player-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 15px;
+}
+.player-card {
+  border: 1px solid var(--border-dim);
+  padding: 15px;
+  border-radius: 6px;
+  background: rgba(0,20,30,0.6);
+  position: relative;
+  transition: all 0.3s;
+}
+.player-card.is-me { border-color: var(--accent); background: rgba(0,30,50,0.6); }
+.player-card.is-cracked { border-color: var(--danger); opacity: 0.6; }
+.player-card.is-target { border-color: var(--danger); box-shadow: 0 0 15px rgba(255,0,85,0.4); }
+.player-card h3 { font-size: 1rem; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.player-card .info { font-size: 0.85rem; margin: 5px 0; color: var(--text-dim); }
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  background: var(--border-dim);
+  color: #fff;
+}
+.status-cracked { background: var(--danger); }
+.status-protected { background: var(--border-dim); }
+.known-pass-display {
+  background: rgba(0,0,0,0.8);
+  border: 1px dashed var(--warning);
+  padding: 12px;
+  border-radius: 4px;
+  margin: 10px 0;
+  letter-spacing: 8px;
+  font-size: 1.6rem;
+  text-align: center;
+  color: var(--warning);
+  font-weight: bold;
+  min-height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.known-pass-display .char-known { color: var(--warning); }
+.known-pass-display .char-unknown { color: #444; }
+.action-panel {
+  background: #000;
+  border: 1px solid var(--border-dim);
+  padding: 20px;
+  border-radius: 6px;
+  margin-top: 15px;
+}
+.logs {
+  height: 180px;
+  overflow-y: auto;
+  background: rgba(0,0,0,0.8);
+  border: 1px solid var(--border-dim);
+  padding: 10px;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  color: #00ff66;
+}
+.log-item { margin-bottom: 4px; }
+.log-item.error { color: var(--danger); }
+.log-item.warn { color: var(--warning); }
+.log-item.info { color: var(--accent); }
+.log-item.success { color: #00ff66; }
+.notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: rgba(0, 20, 30, 0.95);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 15px 20px;
+  color: var(--border);
+  font-size: 0.9rem;
+  z-index: 1000;
+  box-shadow: 0 0 20px rgba(0, 255, 204, 0.5);
+  animation: slideIn 0.3s ease;
+  max-width: 350px;
+}
+.notification.danger { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 20px rgba(255, 0, 85, 0.5); }
+.notification.warning { border-color: var(--warning); color: var(--warning); box-shadow: 0 0 20px rgba(255, 170, 0, 0.5); }
+@keyframes slideIn {
+  from { transform: translateX(400px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+.timer-bar {
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 8px;
+}
+.timer-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--danger), var(--warning));
+  transition: width 1s linear;
+}
+.mini-game {
+  background: rgba(0, 0, 0, 0.8);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 15px;
+  margin: 15px 0;
+}
+.mini-game h4 { color: var(--accent); margin-bottom: 10px; font-size: 0.95rem; }
+.hex-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin: 10px 0;
+}
+.hex-cell {
+  background: rgba(0, 170, 255, 0.1);
+  border: 1px solid var(--accent);
+  border-radius: 4px;
+  padding: 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 1.1rem;
+  color: var(--accent);
+  user-select: none;
+}
+.hex-cell:hover { background: var(--accent); color: #000; }
+.hex-cell.selected { background: var(--warning); color: #000; border-color: var(--warning); }
+.hex-cell.correct { background: #00ff66; color: #000; border-color: #00ff66; }
+.hex-cell.wrong { background: var(--danger); color: #fff; border-color: var(--danger); }
+.hex-cell.disabled { opacity: 0.3; pointer-events: none; }
+.credits-display {
+  color: var(--warning);
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+.shop-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px;
+  border: 1px solid var(--border-dim);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  background: rgba(0,0,0,0.4);
+}
+.shop-item button { flex: 0 0 auto; min-width: 100px; padding: 6px 12px; font-size: 0.85rem; }
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  background: var(--purple);
+  color: #fff;
+  margin-left: 5px;
+}
+.intel-card {
+  background: rgba(0, 30, 50, 0.6);
+  border: 1px solid var(--accent);
+  border-radius: 6px;
+  padding: 12px;
+  margin-bottom: 10px;
+  font-size: 0.85rem;
+}
+.intel-card .intel-title { color: var(--accent); font-weight: bold; margin-bottom: 5px; }
+.progress-ring {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid var(--border-dim);
+  border-top-color: var(--border);
+  animation: spin 1s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.ability-btn {
+  position: relative;
+  overflow: hidden;
+}
+.ability-btn .cooldown {
+  position: absolute;
+  top: 0; left: 0; height: 100%;
+  background: rgba(255, 0, 85, 0.3);
+  transition: width 0.1s linear;
+}
+.victory-screen {
+  text-align: center;
+  padding: 40px 20px;
+}
+.victory-screen h2 {
+  font-size: 2.5rem;
+  color: var(--warning);
+  text-shadow: 0 0 20px var(--warning);
+  border: none;
+  margin-bottom: 20px;
+}
+.victory-screen p { font-size: 1.1rem; margin: 10px 0; }
+</style>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
 </head>
 <body>
-  <canvas id="matrix-bg"></canvas>
+<canvas id="matrix-bg"></canvas>
+<div class="container">
+<header>
+  <h1>CYBER HACK &amp; DEFEND</h1>
+  <p style="font-size:0.8rem; color:var(--text-dim);">TACTICAL REALTIME WARFARE v2.0</p>
+</header>
 
-  <div class="container">
-    <header>
-      <h1>CYBER HACK & DEFEND</h1>
-      <p style="font-size:0.8rem; color:var(--text-dim);">TACTICAL REALTIME CRACKING</p>
-    </header>
+<!-- Welcome Screen -->
+<div id="screen-welcome" class="screen active card">
+  <h2>ブリーフィング</h2>
+  <ul class="rules-list">
+    <li><b>目標:</b> 敵プレイヤーのパスワードを解読し、完全ハックする。</li>
+    <li><b>資金:</b> マイニングやハック成功でCREDITSを獲得。</li>
+    <li><b>スキャン:</b> 文字数・1文字・位置情報などを購入して敵パスワードを解析。</li>
+    <li><b>防衛:</b> ファイアウォール強化・パスワード変更・トラップ設置で防御。</li>
+    <li><b>特殊能力:</b> クールダウン付きのハッキングアビリティを駆使せよ。</li>
+    <li><b>勝利:</b> 敵のパスワードを完全に特定し、ハックを成功させる。</li>
+  </ul>
+  <div style="margin-top:20px; padding:15px; background:rgba(255,170,0,0.1); border:1px solid var(--warning); border-radius:4px;">
+    <b style="color:var(--warning);">⚠ 警告:</b> ハック失敗時は相手に位置が露呈し、反撃を受ける可能性がある。
+  </div>
+  <div class="form-group" style="margin-top:20px;">
+    <label>プレイヤー名</label>
+    <input type="text" id="input-username" placeholder="例: CyberHero" maxlength="12">
+  </div>
+  <div class="form-group">
+    <label>あなたの秘密のパスワード（4〜8文字・英数字）</label>
+    <input type="password" id="input-password" placeholder="例: pass123" maxlength="8">
+  </div>
+  <div class="form-group">
+    <label>ルームID（友達と共通の番号）</label>
+    <input type="text" id="input-roomid" placeholder="例: ROOM99" maxlength="10">
+  </div>
+  <div class="btn-group">
+    <button onclick="joinGame()">ゲーム開始 / ルーム参加</button>
+  </div>
+</div>
 
-    <!-- 1. Screen: Welcome & Rules -->
-    <div id="screen-welcome" class="screen active card">
-      <h2>ゲームルール説明</h2>
-      <ul class="rules-list">
-        <li><b>1. パスワード設定:</b> 自分だけの秘密のパスワード（4〜8文字）を決めて参戦します。</li>
-        <li><b>2. 資金獲得:</b> 「マイニング」で資金（CREDITS）を稼ぎます。</li>
-        <li><b>3. 文字数スキャン (50$):</b> 相手のパスワードの「全体の文字数」を特定します。</li>
-        <li><b>4. ブルートフォース解析 (80$):</b> 相手のパスワードから「ランダムな1文字の位置と文字」を直接解読します。</li>
-        <li><b>5. 防衛強化:</b> ファイアウォールレベルを上げると、相手にハックされにくくなります。</li>
-        <li><b>6. 勝利条件:</b> 解析結果を組み合わせて敵の実際のパスワードを入力し、完全にハックすれば勝利！</li>
-      </ul>
-
-      <div class="form-group" style="margin-top:20px;">
-        <label>プレイヤー名</label>
-        <input type="text" id="input-username" placeholder="例: CyberHero" maxlength="12">
-      </div>
-      <div class="form-group">
-        <label>あなたの秘密のパスワード（4〜8文字）</label>
-        <input type="password" id="input-password" placeholder="例: pass123" maxlength="8">
-      </div>
-      <div class="form-group">
-        <label>ルームID（友達と共通の番号）</label>
-        <input type="text" id="input-roomid" placeholder="例: ROOM99" maxlength="10">
-      </div>
-
-      <div class="btn-group">
-        <button onclick="joinGame()">ゲーム開始 / ルーム参加</button>
-      </div>
-    </div>
-
-    <!-- 2. Screen: Main Game -->
-    <div id="screen-game" class="screen card">
-      <div class="hud">
-        <div>PLAYER: <span id="hud-name" style="color:#fff;">-</span></div>
-        <div>ROOM: <span id="hud-room" style="color:var(--border);">-</span></div>
-        <div>FW LEVEL: Lvl <span id="hud-fw" style="color:var(--accent);">1</span></div>
-        <div>CREDITS: <span id="hud-coins" style="color:var(--warning);">100</span> $</div>
-      </div>
-
-      <div style="margin-bottom:15px;" class="btn-group">
-        <button onclick="earnCoins()">データマイニング (+30$)</button>
-        <button class="btn-warning" onclick="upgradeFirewall()">FW強化 (100$)</button>
-      </div>
-
-      <h2>ターゲット一覧（友達）</h2>
-      <div id="player-list" class="player-list"></div>
-
-      <!-- Action Panel -->
-      <div id="action-panel" class="action-panel" style="display:none;">
-        <h3>ターゲット操作: <span id="target-name" style="color:var(--danger);"></span></h3>
-        
-        <div style="margin:10px 0;">解析済みのパスワード情報:</div>
-        <div class="known-pass-display" id="target-pass-mask">????</div>
-
-        <div class="btn-group" style="margin:15px 0;">
-          <button onclick="scanLength()">文字数判定 (50$)</button>
-          <button onclick="scanOneChar()">1文字解読スキャン (80$)</button>
-        </div>
-
-        <div class="form-group" style="margin-top:15px;">
-          <label>推測したパスワードを入力して実行</label>
-          <div style="display:flex; gap:10px;">
-            <input type="text" id="input-crack-pass" placeholder="解読したパスワード">
-            <button class="btn-danger" onclick="submitCrack()">完全ハック実行</button>
-          </div>
-        </div>
-
-        <button style="margin-top:10px; width:100%;" onclick="closeActionPanel()">閉じる</button>
-      </div>
-
-      <h2 style="margin-top:25px;">システムアクティビティログ</h2>
-      <div id="system-logs" class="logs"></div>
-    </div>
+<!-- Game Screen -->
+<div id="screen-game" class="screen card">
+  <div class="hud">
+    <div class="hud-item"><span class="label">PLAYER</span><span class="value" id="hud-name">-</span></div>
+    <div class="hud-item"><span class="label">ROOM</span><span class="value" id="hud-room">-</span></div>
+    <div class="hud-item"><span class="label">FW LEVEL</span><span class="value" id="hud-fw" style="color:var(--accent);">1</span></div>
+    <div class="hud-item"><span class="label">CREDITS</span><span class="value credits-display" id="hud-coins">100</span></div>
+    <div class="hud-item"><span class="label">CRACKS</span><span class="value" id="hud-cracks" style="color:var(--warning);">0</span></div>
+    <div class="hud-item"><span class="label">STATUS</span><span class="value" id="hud-status" style="color:#00ff66;">安全</span></div>
   </div>
 
-  <script>
-    // Firebase Config
-    const firebaseConfig = {
-      apiKey: "AIzaSyBZhZTrcRmz6syRL8V1qc5UzYgT9wjy5ck",
-      authDomain: "dockgam-9fe2c.firebaseapp.com",
-      databaseURL: "https://dockgam-9fe2c-default-rtdb.firebaseio.com",
-      projectId: "dockgam-9fe2c",
-      storageBucket: "dockgam-9fe2c.firebasestorage.app",
-      messagingSenderId: "149151085103",
-      appId: "1:149151085103:web:555daf012f53f4d4258cda",
-      measurementId: "G-DCHK8276E5"
-    };
+  <div id="alert-box"></div>
 
-    firebase.initializeApp(firebaseConfig);
-    const db = firebase.database();
+  <h2>アクション</h2>
+  <div class="btn-group" style="margin-bottom:15px;">
+    <button onclick="earnCoins()" id="btn-mine">データマイニング (+30$)</button>
+    <button class="btn-warning" onclick="openShop()">🛒 ショップ</button>
+    <button class="btn-accent" onclick="openAbilities()">⚡ 特殊能力</button>
+    <button class="btn-purple" onclick="openMyDefense()">🛡 防御設定</button>
+  </div>
 
-    // Local Game State
-    let myUserId = 'user_' + Math.random().toString(36).substring(2, 9);
-    let myRoomId = '';
-    let myName = '';
-    let myPassword = '';
-    let myCoins = 100;
-    let firewallLevel = 1;
+  <!-- Shop Panel -->
+  <div id="shop-panel" class="action-panel" style="display:none;">
+    <h3>🛒 ブラックマーケット</h3>
+    <div class="shop-item">
+      <div><b>文字数スキャナー</b><br><span style="font-size:0.8rem; color:var(--text-dim);">敵のパスワード文字数を特定</span></div>
+      <button onclick="buyScan('length')">50$</button>
+    </div>
+    <div class="shop-item">
+      <div><b>1文字解読スキャン</b><br><span style="font-size:0.8rem; color:var(--text-dim);">ランダムな1文字を解読</span></div>
+      <button onclick="buyScan('onechar')">80$</button>
+    </div>
+    <div class="shop-item">
+      <div><b>位置指定スキャン</b><br><span style="font-size:0.8rem; color:var(--text-dim);">指定した位置の文字を解読</span></div>
+      <button onclick="buyScan('position')">120$</button>
+    </div>
+    <div class="shop-item">
+      <div><b>文字種スキャン</b><br><span style="font-size:0.8rem; color:var(--text-dim);">文字種（英小/英大/数字）を特定</span></div>
+      <button onclick="buyScan('chartype')">60$</button>
+    </div>
+    <div class="shop-item">
+      <div><b>ファイアウォール強化</b><br><span style="font-size:0.8rem; color:var(--text-dim);">被ハック率を低下（最大Lv5）</span></div>
+      <button onclick="upgradeFirewall()">100$</button>
+    </div>
+    <button style="margin-top:10px; width:100%;" onclick="closePanel('shop-panel')">閉じる</button>
+  </div>
 
-    let activeTargetId = null;
-    let knownMasks = {}; // ターゲットごとの解読状況をローカルに保持 { userId: ['p', 'a', '?', '?'] }
+  <!-- Abilities Panel -->
+  <div id="abilities-panel" class="action-panel" style="display:none;">
+    <h3>⚡ 特殊能力（クールダウン制）</h3>
+    <div class="shop-item">
+      <div><b>ディープスキャン</b> <span class="badge">CD: 30s</span><br><span style="font-size:0.8rem; color:var(--text-dim);">1文字を確実に解読（無料）</span></div>
+      <button class="ability-btn" id="ab-deep" onclick="useDeepScan()">実行</button>
+    </div>
+    <div class="shop-item">
+      <div><b>ログインジェクション</b> <span class="badge">CD: 45s</span><br><span style="font-size:0.8rem; color:var(--text-dim);">文字数＋1文字を同時解読</span></div>
+      <button class="ability-btn" id="ab-inject" onclick="useInjection()">実行</button>
+    </div>
+    <div class="shop-item">
+      <div><b>ファイアウォールパルス</b> <span class="badge">CD: 60s</span><br><span style="font-size:0.8rem; color:var(--text-dim);">60秒間、被ハック率を半減</span></div>
+      <button class="ability-btn" id="ab-pulse" onclick="useFirewallPulse()">実行</button>
+    </div>
+    <button style="margin-top:10px; width:100%;" onclick="closePanel('abilities-panel')">閉じる</button>
+  </div>
 
-    // Background Matrix Effect
-    const canvas = document.getElementById('matrix-bg');
-    const ctx = canvas.getContext('2d');
-    canvas.width = window.innerWidth;
-    canvas.height = window.innerHeight;
-    const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-    const drops = Array(Math.floor(canvas.width / 20)).fill(1);
+  <!-- Defense Panel -->
+  <div id="defense-panel" class="action-panel" style="display:none;">
+    <h3>🛡 防御設定</h3>
+    <div class="form-group">
+      <label>新しいパスワード（変更には50$）</label>
+      <div style="display:flex; gap:10px;">
+        <input type="password" id="input-newpass" placeholder="新パスワード（4〜8文字）" maxlength="8">
+        <button onclick="changePassword()">変更 (50$)</button>
+      </div>
+    </div>
+    <div class="shop-item">
+      <div><b>トラップ設置</b><br><span style="font-size:0.8rem; color:var(--text-dim);">次のハック失敗時に相手のCREDITSを-50</span></div>
+      <button onclick="setTrap()">80$</button>
+    </div>
+    <div class="shop-item">
+      <div><b>ログ消去</b><br><span style="font-size:0.8rem; color:var(--text-dim);">相手の解析進捗をリセット</span></div>
+      <button onclick="purgeLogs()">150$</button>
+    </div>
+    <button style="margin-top:10px; width:100%;" onclick="closePanel('defense-panel')">閉じる</button>
+  </div>
 
-    function drawMatrix() {
-      ctx.fillStyle = 'rgba(3, 10, 14, 0.08)';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.fillStyle = '#00ffcc';
-      ctx.font = '15px monospace';
+  <!-- Target Action Panel -->
+  <div id="action-panel" class="action-panel" style="display:none;">
+    <h3>ターゲット: <span id="target-name" style="color:var(--danger);"></span></h3>
+    <div style="margin:10px 0;">解析済みのパスワード情報:</div>
+    <div class="known-pass-display" id="target-pass-mask">? ? ? ?</div>
+    <div id="intel-display"></div>
 
-      drops.forEach((y, i) => {
-        const text = chars[Math.floor(Math.random() * chars.length)];
-        ctx.fillText(text, i * 20, y * 20);
-        if (y * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
-        drops[i]++;
-      });
+    <div class="btn-group" style="margin:15px 0;">
+      <button onclick="openShopForTarget()">🛒 スキャン購入</button>
+      <button class="btn-accent" onclick="useDeepScan()">⚡ ディープスキャン</button>
+      <button class="btn-purple" onclick="useInjection()">💉 インジェクション</button>
+    </div>
+
+    <div class="form-group" style="margin-top:15px;">
+      <label>推測したパスワードを入力して実行</label>
+      <div style="display:flex; gap:10px;">
+        <input type="text" id="input-crack-pass" placeholder="解読したパスワード">
+        <button class="btn-danger" onclick="submitCrack()">完全ハック実行</button>
+      </div>
+    </div>
+    <div class="timer-bar"><div class="timer-fill" id="crack-timer" style="width:0%"></div></div>
+
+    <button style="margin-top:10px; width:100%;" onclick="closeActionPanel()">閉じる</button>
+  </div>
+
+  <h2 style="margin-top:25px;">ターゲット一覧</h2>
+  <div id="player-list" class="player-list"></div>
+
+  <h2 style="margin-top:25px;">システムログ</h2>
+  <div id="system-logs" class="logs"></div>
+</div>
+</div>
+
+<script>
+// Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyBZhZTrcRmz6syRL8V1qc5UzYgT9wjy5ck",
+  authDomain: "dockgam-9fe2c.firebaseapp.com",
+  databaseURL: "https://dockgam-9fe2c-default-rtdb.firebaseio.com",
+  projectId: "dockgam-9fe2c",
+  storageBucket: "dockgam-9fe2c.firebasestorage.app",
+  messagingSenderId: "149151085103",
+  appId: "1:149151085103:web:555daf012f53f4d4258cda"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+
+// State
+let myUserId = 'user_' + Math.random().toString(36).substring(2, 9);
+let myRoomId = '';
+let myName = '';
+let myPassword = '';
+let myCoins = 100;
+let myFirewall = 1;
+let myCracks = 0;
+let myStatus = '安全';
+let myTrap = false;
+let firewallPulseUntil = 0;
+
+let activeTargetId = null;
+let activeTargetName = '';
+let knownMasks = {}; // { userId: ['a','?',...] }
+let knownLengths = {}; // { userId: number }
+let knownCharTypes = {}; // { userId: ['lower','?',...] }
+let cooldowns = { deep: 0, inject: 0, pulse: 0 };
+
+// Background Matrix
+const canvas = document.getElementById('matrix-bg');
+const ctx = canvas.getContext('2d');
+function resizeCanvas() { canvas.width = window.innerWidth; canvas.height = window.innerHeight; }
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+const chars = '01ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+let drops = Array(Math.floor(canvas.width / 20)).fill(1);
+function drawMatrix() {
+  ctx.fillStyle = 'rgba(3, 10, 14, 0.08)';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = '#00ffcc';
+  ctx.font = '15px monospace';
+  drops.forEach((y, i) => {
+    const text = chars[Math.floor(Math.random() * chars.length)];
+    ctx.fillText(text, i * 20, y * 20);
+    if (y * 20 > canvas.height && Math.random() > 0.975) drops[i] = 0;
+    drops[i]++;
+  });
+}
+setInterval(drawMatrix, 50);
+
+// Notification
+function notify(msg, type = 'normal') {
+  const div = document.createElement('div');
+  div.className = 'notification' + (type === 'danger' ? ' danger' : type === 'warning' ? ' warning' : '');
+  div.textContent = msg;
+  document.body.appendChild(div);
+  setTimeout(() => { div.style.opacity = '0'; div.style.transition = 'opacity 0.5s'; setTimeout(() => div.remove(), 500); }, 3000);
+}
+
+function log(msg, type = 'normal') {
+  const logs = document.getElementById('system-logs');
+  const item = document.createElement('div');
+  item.className = 'log-item' + (type === 'error' ? ' error' : type === 'warn' ? ' warn' : type === 'info' ? ' info' : type === 'success' ? ' success' : '');
+  const time = new Date().toLocaleTimeString();
+  item.textContent = `[${time}] ${msg}`;
+  logs.appendChild(item);
+  logs.scrollTop = logs.scrollHeight;
+}
+
+function joinGame() {
+  myName = document.getElementById('input-username').value.trim();
+  myPassword = document.getElementById('input-password').value.trim();
+  myRoomId = document.getElementById('input-roomid').value.trim().toUpperCase();
+  if (!myName || !myPassword || !myRoomId) { notify('全ての項目を入力してください', 'danger'); return; }
+  if (myPassword.length < 4 || myPassword.length > 8) { notify('パスワードは4〜8文字', 'danger'); return; }
+  if (!/^[a-zA-Z0-9]+$/.test(myPassword)) { notify('パスワードは英数字のみ', 'danger'); return; }
+
+  const playerRef = db.ref(`rooms/${myRoomId}/players/${myUserId}`);
+  playerRef.set({
+    name: myName, password: myPassword, firewall: myFirewall,
+    isCracked: false, trap: false, joinedAt: Date.now()
+  }).then(() => {
+    playerRef.onDisconnect().remove();
+    document.getElementById('screen-welcome').classList.remove('active');
+    document.getElementById('screen-game').classList.add('active');
+    document.getElementById('hud-name').textContent = myName;
+    document.getElementById('hud-room').textContent = myRoomId;
+    updateCoins(0);
+    log(`ルーム [${myRoomId}] に接続完了`, 'success');
+    listenToRoomUpdates();
+    startCooldownLoop();
+  }).catch(err => notify('接続エラー: ' + err.message, 'danger'));
+}
+
+function updateCoins(amount) {
+  myCoins += amount;
+  if (myCoins < 0) myCoins = 0;
+  document.getElementById('hud-coins').textContent = myCoins;
+}
+
+function earnCoins() {
+  updateCoins(30);
+  log('マイニング完了: +30 CREDITS', 'success');
+}
+
+function openPanel(id) {
+  ['shop-panel','abilities-panel','defense-panel'].forEach(p => {
+    document.getElementById(p).style.display = (p === id && document.getElementById(p).style.display === 'none') ? 'block' : 'none';
+  });
+}
+function openShop() { openPanel('shop-panel'); }
+function openAbilities() { openPanel('abilities-panel'); }
+function openMyDefense() { openPanel('defense-panel'); }
+function closePanel(id) { document.getElementById(id).style.display = 'none'; }
+function openShopForTarget() { openPanel('shop-panel'); }
+
+function upgradeFirewall() {
+  if (myFirewall >= 5) { notify('ファイアウォールは最大Lvです', 'warning'); return; }
+  if (myCoins < 100) { notify('クレジット不足 (100$)', 'danger'); return; }
+  updateCoins(-100);
+  myFirewall++;
+  document.getElementById('hud-fw').textContent = myFirewall;
+  db.ref(`rooms/${myRoomId}/players/${myUserId}`).update({ firewall: myFirewall });
+  log(`ファイアウォール強化: Lv${myFirewall}`, 'success');
+  notify(`ファイアウォール Lv${myFirewall} に強化`);
+}
+
+function changePassword() {
+  const np = document.getElementById('input-newpass').value.trim();
+  if (np.length < 4 || np.length > 8) { notify('4〜8文字の英数字', 'danger'); return; }
+  if (!/^[a-zA-Z0-9]+$/.test(np)) { notify('英数字のみ', 'danger'); return; }
+  if (myCoins < 50) { notify('クレジット不足 (50$)', 'danger'); return; }
+  updateCoins(-50);
+  myPassword = np;
+  db.ref(`rooms/${myRoomId}/players/${myUserId}`).update({ password: np });
+  document.getElementById('input-newpass').value = '';
+  log('パスワードを変更しました', 'info');
+  notify('パスワード変更完了');
+}
+
+function setTrap() {
+  if (myCoins < 80) { notify('クレジット不足 (80$)', 'danger'); return; }
+  if (myTrap) { notify('既にトラップ設置済み', 'warning'); return; }
+  updateCoins(-80);
+  myTrap = true;
+  db.ref(`rooms/${myRoomId}/players/${myUserId}`).update({ trap: true });
+  log('トラップを設置しました', 'info');
+  notify('トラップ設置完了');
+}
+
+function purgeLogs() {
+  if (myCoins < 150) { notify('クレジット不足 (150$)', 'danger'); return; }
+  updateCoins(-150);
+  // 相手のknownMasksをリセットするため、Firebaseにpurgeフラグを立てる
+  db.ref(`rooms/${myRoomId}/purge/${myUserId}`).set(Date.now());
+  log('敵の解析ログを消去しました', 'warn');
+  notify('敵の解析進捗をリセット', 'warning');
+}
+
+function listenToRoomUpdates() {
+  db.ref(`rooms/${myRoomId}/players`).on('value', (snapshot) => {
+    const players = snapshot.val() || {};
+    renderPlayerList(players);
+    // 自分がハックされたら通知
+    if (players[myUserId] && players[myUserId].isCracked && myStatus !== 'ハック済') {
+      myStatus = 'ハック済';
+      document.getElementById('hud-status').textContent = 'ハック済';
+      document.getElementById('hud-status').style.color = 'var(--danger)';
+      notify('⚠ あなたはハックされました！', 'danger');
+      log('警告: あなたのシステムがハックされました', 'error');
     }
-    setInterval(drawMatrix, 50);
-
-    function log(msg, type = 'normal') {
-      const logs = document.getElementById('system-logs');
-      const item = document.createElement('div');
-      item.className = 'log-item' + (type === 'error' ? ' error' : type === 'warn' ? ' warn' : '');
-      const time = new Date().toLocaleTimeString();
-      item.textContent = `[${time}] ${msg}`;
-      logs.appendChild(item);
-      logs.scrollTop = logs.scrollHeight;
-    }
-
-    function joinGame() {
-      myName = document.getElementById('input-username').value.trim();
-      myPassword = document.getElementById('input-password').value.trim();
-      myRoomId = document.getElementById('input-roomid').value.trim().toUpperCase();
-
-      if (!myName || !myPassword || !myRoomId) {
-        alert('全ての項目を入力してください。');
-        return;
+  });
+  // purge監視
+  db.ref(`rooms/${myRoomId}/purge`).on('value', (snap) => {
+    const data = snap.val() || {};
+    Object.keys(data).forEach(uid => {
+      if (uid !== myUserId && knownMasks[uid]) {
+        delete knownMasks[uid];
+        log(`${uid} の解析ログが消去されました`, 'warn');
       }
+    });
+  });
+}
 
-      if (myPassword.length < 4 || myPassword.length > 8) {
-        alert('パスワードは4〜8文字にしてください。');
-        return;
+function renderPlayerList(players) {
+  const listEl = document.getElementById('player-list');
+  listEl.innerHTML = '';
+  Object.keys(players).forEach(id => {
+    const p = players[id];
+    const isMe = id === myUserId;
+    const card = document.createElement('div');
+    card.className = `player-card ${isMe ? 'is-me' : ''} ${p.isCracked ? 'is-cracked' : ''} ${activeTargetId === id ? 'is-target' : ''}`;
+    card.innerHTML = `
+      <h3>${p.name} ${isMe ? '<span class="badge">YOU</span>' : ''}</h3>
+      <div class="info">FWレベル: Lv${p.firewall || 1}</div>
+      <div class="info"><span class="status-badge ${p.isCracked ? 'status-cracked' : 'status-protected'}">${p.isCracked ? 'CRACKED' : 'PROTECTED'}</span></div>
+      ${!isMe && !p.isCracked ? `<button style="margin-top:10px; width:100%;" onclick="openActionPanel('${id}','${p.name.replace(/'/g,"\\'")}')">ハック画面</button>` : ''}
+    `;
+    listEl.appendChild(card);
+  });
+}
+
+function openActionPanel(targetId, name) {
+  activeTargetId = targetId;
+  activeTargetName = name;
+  document.getElementById('target-name').textContent = name;
+  document.getElementById('action-panel').style.display = 'block';
+  if (!knownMasks[targetId]) knownMasks[targetId] = [];
+  updateMaskDisplay();
+  renderIntel();
+}
+
+function closeActionPanel() {
+  document.getElementById('action-panel').style.display = 'none';
+  activeTargetId = null;
+}
+
+function updateMaskDisplay() {
+  const mask = knownMasks[activeTargetId] || [];
+  const len = knownLengths[activeTargetId] || mask.length || 4;
+  let display = '';
+  for (let i = 0; i < len; i++) {
+    const c = mask[i];
+    if (c && c !== '?') display += `<span class="char-known">${c}</span> `;
+    else display += `<span class="char-unknown">?</span> `;
+  }
+  document.getElementById('target-pass-mask').innerHTML = display.trim() || '? ? ? ?';
+}
+
+function renderIntel() {
+  const el = document.getElementById('intel-display');
+  let html = '';
+  if (knownLengths[activeTargetId]) {
+    html += `<div class="intel-card"><div class="intel-title">文字数</div>${knownLengths[activeTargetId]} 文字</div>`;
+  }
+  if (knownCharTypes[activeTargetId]) {
+    const types = knownCharTypes[activeTargetId].map(t => t === 'lower' ? '英小' : t === 'upper' ? '英大' : t === 'digit' ? '数字' : '?').join(' / ');
+    html += `<div class="intel-card"><div class="intel-title">文字種</div>${types}</div>`;
+  }
+  el.innerHTML = html;
+}
+
+function buyScan(type) {
+  if (!activeTargetId) { notify('ターゲットを選択してください', 'warning'); return; }
+  const costs = { length: 50, onechar: 80, position: 120, chartype: 60 };
+  const cost = costs[type];
+  if (myCoins < cost) { notify(`クレジット不足 (${cost}$)`, 'danger'); return; }
+
+  db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
+    const target = snap.val();
+    if (!target) { notify('ターゲットが見つかりません', 'danger'); return; }
+    const actualPass = target.password;
+    updateCoins(-cost);
+
+    if (type === 'length') {
+      knownLengths[activeTargetId] = actualPass.length;
+      let mask = knownMasks[activeTargetId] || [];
+      while (mask.length < actualPass.length) mask.push('?');
+      mask = mask.slice(0, actualPass.length);
+      knownMasks[activeTargetId] = mask;
+      log(`スキャン: ${target.name} の文字数は ${actualPass.length}`, 'warn');
+      notify(`文字数: ${actualPass.length}文字`);
+    } else if (type === 'onechar') {
+      let mask = knownMasks[activeTargetId] || Array(actualPass.length).fill('?');
+      if (!knownLengths[activeTargetId]) knownLengths[activeTargetId] = actualPass.length;
+      let unknown = [];
+      for (let i = 0; i < actualPass.length; i++) if (!mask[i] || mask[i] === '?') unknown.push(i);
+      if (!unknown.length) { notify('全文字解読済み', 'warning'); return; }
+      const idx = unknown[Math.floor(Math.random() * unknown.length)];
+      mask[idx] = actualPass[idx];
+      knownMasks[activeTargetId] = mask;
+      log(`解読: ${idx + 1}番目 = '${actualPass[idx]}'`, 'warn');
+      notify(`1文字解読: ${idx + 1}番目 = '${actualPass[idx]}'`);
+    } else if (type === 'position') {
+      const pos = prompt(`位置を指定 (1〜${actualPass.length})`);
+      const idx = parseInt(pos) - 1;
+      if (isNaN(idx) || idx < 0 || idx >= actualPass.length) { notify('無効な位置', 'danger'); updateCoins(cost); return; }
+      let mask = knownMasks[activeTargetId] || Array(actualPass.length).fill('?');
+      mask[idx] = actualPass[idx];
+      knownMasks[activeTargetId] = mask;
+      if (!knownLengths[activeTargetId]) knownLengths[activeTargetId] = actualPass.length;
+      log(`位置指定解読: ${idx + 1}番目 = '${actualPass[idx]}'`, 'warn');
+      notify(`${idx + 1}番目 = '${actualPass[idx]}'`);
+    } else if (type === 'chartype') {
+      let types = knownCharTypes[activeTargetId] || [];
+      for (let i = 0; i < actualPass.length; i++) {
+        if (!types[i] || types[i] === '?') {
+          const c = actualPass[i];
+          types[i] = /[a-z]/.test(c) ? 'lower' : /[A-Z]/.test(c) ? 'upper' : 'digit';
+        }
       }
-
-      const playerRef = db.ref(`rooms/${myRoomId}/players/${myUserId}`);
-      playerRef.set({
-        name: myName,
-        password: myPassword,
-        firewall: firewallLevel,
-        isCracked: false,
-        joinedAt: Date.now()
-      }).then(() => {
-        playerRef.onDisconnect().remove();
-
-        document.getElementById('screen-welcome').classList.remove('active');
-        document.getElementById('screen-game').classList.add('active');
-
-        document.getElementById('hud-name').textContent = myName;
-        document.getElementById('hud-room').textContent = myRoomId;
-        updateCoins(0);
-
-        log(`ルーム [${myRoomId}] に接続しました。ターゲットを探してハックを開始してください。`);
-        listenToRoomUpdates();
-      }).catch(err => {
-        alert('接続エラー: ' + err.message);
-      });
+      knownCharTypes[activeTargetId] = types;
+      if (!knownLengths[activeTargetId]) knownLengths[activeTargetId] = actualPass.length;
+      log(`文字種スキャン完了`, 'warn');
+      notify('文字種を特定しました');
     }
+    updateMaskDisplay();
+    renderIntel();
+  });
+}
 
-    function updateCoins(amount) {
-      myCoins += amount;
-      document.getElementById('hud-coins').textContent = myCoins;
-    }
-
-    function earnCoins() {
-      updateCoins(30);
-      log('マイニング完了: 30 CREDITS 獲得');
-    }
-
-    function upgradeFirewall() {
-      if (myCoins < 100) {
-        alert('クレジットが足りません（必要: 100$）');
-        return;
+// Cooldown system
+function startCooldownLoop() {
+  setInterval(() => {
+    const now = Date.now();
+    ['deep','inject','pulse'].forEach(k => {
+      if (cooldowns[k] > now) {
+        const el = document.getElementById('ab-' + (k === 'deep' ? 'deep' : k === 'inject' ? 'inject' : 'pulse'));
+        if (el) {
+          const remain = Math.ceil((cooldowns[k] - now) / 1000);
+          el.textContent = `${remain}s`;
+          el.disabled = true;
+        }
+      } else {
+        const el = document.getElementById('ab-' + (k === 'deep' ? 'deep' : k === 'inject' ? 'inject' : 'pulse'));
+        if (el) { el.textContent = '実行'; el.disabled = false; }
       }
-      updateCoins(-100);
-      firewallLevel++;
-      document.getElementById('hud-fw').textContent = firewallLevel;
-      db.ref(`rooms/${myRoomId}/players/${myUserId}`).update({ firewall: firewallLevel });
-      log(`ファイアウォール強化完了: Lvl ${firewallLevel}`);
+    });
+    // Firewall pulse
+    if (firewallPulseUntil > now) {
+      document.getElementById('hud-status').textContent = 'パルス展開中';
+      document.getElementById('hud-status').style.color = 'var(--accent)';
+    } else if (myStatus !== 'ハック済') {
+      document.getElementById('hud-status').textContent = '安全';
+      document.getElementById('hud-status').style.color = '#00ff66';
     }
+  }, 500);
+}
 
-    function listenToRoomUpdates() {
-      db.ref(`rooms/${myRoomId}/players`).on('value', (snapshot) => {
-        const players = snapshot.val() || {};
-        renderPlayerList(players);
-      });
+function useDeepScan() {
+  if (!activeTargetId) { notify('ターゲット未選択', 'warning'); return; }
+  if (cooldowns.deep > Date.now()) { notify('クールダウン中', 'warning'); return; }
+  db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
+    const target = snap.val();
+    if (!target) return;
+    const actualPass = target.password;
+    let mask = knownMasks[activeTargetId] || Array(actualPass.length).fill('?');
+    if (!knownLengths[activeTargetId]) knownLengths[activeTargetId] = actualPass.length;
+    let unknown = [];
+    for (let i = 0; i < actualPass.length; i++) if (!mask[i] || mask[i] === '?') unknown.push(i);
+    if (!unknown.length) { notify('全文字解読済み', 'warning'); return; }
+    const idx = unknown[Math.floor(Math.random() * unknown.length)];
+    mask[idx] = actualPass[idx];
+    knownMasks[activeTargetId] = mask;
+    cooldowns.deep = Date.now() + 30000;
+    log(`ディープスキャン: ${idx + 1}番目 = '${actualPass[idx]}'`, 'info');
+    notify(`ディープスキャン成功: ${idx + 1}番目 = '${actualPass[idx]}'`);
+    updateMaskDisplay();
+  });
+}
+
+function useInjection() {
+  if (!activeTargetId) { notify('ターゲット未選択', 'warning'); return; }
+  if (cooldowns.inject > Date.now()) { notify('クールダウン中', 'warning'); return; }
+  db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
+    const target = snap.val();
+    if (!target) return;
+    const actualPass = target.password;
+    knownLengths[activeTargetId] = actualPass.length;
+    let mask = knownMasks[activeTargetId] || Array(actualPass.length).fill('?');
+    while (mask.length < actualPass.length) mask.push('?');
+    let unknown = [];
+    for (let i = 0; i < actualPass.length; i++) if (!mask[i] || mask[i] === '?') unknown.push(i);
+    if (unknown.length) {
+      const idx = unknown[Math.floor(Math.random() * unknown.length)];
+      mask[idx] = actualPass[idx];
     }
+    knownMasks[activeTargetId] = mask;
+    cooldowns.inject = Date.now() + 45000;
+    log(`インジェクション: 文字数 ${actualPass.length} + 1文字解読`, 'info');
+    notify('インジェクション成功！');
+    updateMaskDisplay();
+  });
+}
 
-    function renderPlayerList(players) {
-      const listEl = document.getElementById('player-list');
-      listEl.innerHTML = '';
+function useFirewallPulse() {
+  if (cooldowns.pulse > Date.now()) { notify('クールダウン中', 'warning'); return; }
+  firewallPulseUntil = Date.now() + 60000;
+  cooldowns.pulse = Date.now() + 90000;
+  log('ファイアウォールパルス展開（60秒間）', 'info');
+  notify('パルス展開: 60秒間防御力UP', 'warning');
+}
 
-      Object.keys(players).forEach(id => {
-        const p = players[id];
-        const isMe = id === myUserId;
+function submitCrack() {
+  if (!activeTargetId) return;
+  const inputPass = document.getElementById('input-crack-pass').value.trim();
+  if (!inputPass) { notify('パスワードを入力', 'warning'); return; }
+  const timerEl = document.getElementById('crack-timer');
+  timerEl.style.width = '100%';
+  setTimeout(() => { timerEl.style.transition = 'width 2s linear'; timerEl.style.width = '0%'; }, 100);
 
-        const card = document.createElement('div');
-        card.className = `player-card ${isMe ? 'is-me' : ''}`;
+  db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
+    const target = snap.val();
+    if (!target) { notify('ターゲット消失', 'danger'); return; }
+    const fw = target.firewall || 1;
+    // ファイアウォールによる失敗判定
+    let failChance = (fw - 1) * 0.08;
+    if (Date.now() < firewallPulseUntil) failChance /= 2;
+    const isFail = Math.random() < failChance;
 
-        card.innerHTML = `
-          <h3>${p.name} ${isMe ? '(あなた)' : ''}</h3>
-          <p style="font-size:0.85rem; margin:8px 0;">FWレベル: Lvl ${p.firewall || 1}</p>
-          <p><span class="status-badge ${p.isCracked ? 'status-cracked' : ''}">
-            ${p.isCracked ? 'CRACKED (ハック済)' : 'PROTECTED (保護中)'}
-          </span></p>
-          ${!isMe && !p.isCracked ? `
-            <button style="margin-top:10px; width:100%;" onclick="openActionPanel('${id}', '${p.name}')">ハック画面を開く</button>
-          ` : ''}
-        `;
-        listEl.appendChild(card);
-      });
-    }
-
-    function openActionPanel(targetId, name) {
-      activeTargetId = targetId;
-      document.getElementById('target-name').textContent = name;
-      document.getElementById('action-panel').style.display = 'block';
-
-      if (!knownMasks[targetId]) {
-        knownMasks[targetId] = ['?', '?', '?', '?']; // 初期マスク
+    if (target.password === inputPass && !isFail) {
+      updateCoins(200);
+      myCracks++;
+      document.getElementById('hud-cracks').textContent = myCracks;
+      db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).update({ isCracked: true });
+      db.ref(`rooms/${myRoomId}/players/${myUserId}`).update({ cracks: myCracks });
+      log(`ハック成功！ ${target.name} を制圧 (+200$)`, 'success');
+      notify(`ハック成功！ ${target.name} を撃破`, 'success');
+      closeActionPanel();
+      if (myCracks >= 3) {
+        setTimeout(() => showVictory(), 500);
       }
-      updateMaskDisplay();
-    }
-
-    function updateMaskDisplay() {
-      const mask = knownMasks[activeTargetId] || ['?', '?', '?', '?'];
-      document.getElementById('target-pass-mask').textContent = mask.join(' ');
-    }
-
-    function closeActionPanel() {
-      document.getElementById('action-panel').style.display = 'none';
-      activeTargetId = null;
-    }
-
-    // 1. 相手の実際のパスワード文字数を取得する
-    function scanLength() {
-      if (myCoins < 50) { alert('クレジット不足 (50$)'); return; }
-
-      db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
-        const target = snap.val();
-        if (!target) return;
-
+    } else {
+      // 失敗
+      let penaltyMsg = 'パスワード不一致';
+      if (isFail) penaltyMsg = 'ファイアウォールにより阻害された';
+      log(`ハック失敗: ${penaltyMsg}`, 'error');
+      notify(`ハック失敗: ${penaltyMsg}`, 'danger');
+      // トラップ判定
+      if (target.trap) {
         updateCoins(-50);
-        const len = target.password.length;
-        
-        // 配列長を実際の文字数に合わせる
-        let mask = knownMasks[activeTargetId] || [];
-        while (mask.length < len) mask.push('?');
-        mask = mask.slice(0, len);
-        knownMasks[activeTargetId] = mask;
-
-        updateMaskDisplay();
-        log(`スキャン成功: ${target.name} のパスワード長は ${len} 文字です。`, 'warn');
-      });
+        log('トラップ発動！ -50 CREDITS', 'error');
+        notify('⚠ トラップ発動！ -50 CREDITS', 'danger');
+        db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).update({ trap: false });
+      }
+      // 位置露呈ペナルティ
+      updateCoins(-20);
+      log('位置露呈ペナルティ: -20 CREDITS', 'error');
     }
+  });
+}
 
-    // 2. 相手の実際のパスワードから未解読の1文字を特定する
-    function scanOneChar() {
-      if (myCoins < 80) { alert('クレジット不足 (80$)'); return; }
+function showVictory() {
+  document.getElementById('screen-game').innerHTML = `
+    <div class="victory-screen">
+      <h2>🏆 MISSION COMPLETE 🏆</h2>
+      <p>あなたは ${myCracks} 人のターゲットをハックし、</p>
+      <p>このルームを完全に制圧しました。</p>
+      <p style="color:var(--warning); font-size:1.5rem; margin-top:20px;">FINAL CREDITS: ${myCoins}$</p>
+      <button style="margin-top:20px; max-width:300px;" onclick="location.reload()">新しいゲームを開始</button>
+    </div>
+  `;
+}
 
-      db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
-        const target = snap.val();
-        if (!target) return;
-
-        const actualPass = target.password;
-        let mask = knownMasks[activeTargetId] || Array(actualPass.length).fill('?');
-
-        // 未解読のインデックスを探す
-        let unknownIndices = [];
-        for (let i = 0; i < actualPass.length; i++) {
-          if (mask[i] === '?' || mask[i] === undefined) unknownIndices.push(i);
-        }
-
-        if (unknownIndices.length === 0) {
-          alert('全ての文字スキャンが完了しています！');
-          return;
-        }
-
-        updateCoins(-80);
-
-        // ランダムに1文字解読
-        const randIdx = unknownIndices[Math.floor(Math.random() * unknownIndices.length)];
-        mask[randIdx] = actualPass[randIdx];
-        knownMasks[activeTargetId] = mask;
-
-        updateMaskDisplay();
-        log(`ブルートフォース成功: ${randIdx + 1}番目の文字は '${actualPass[randIdx]}' です！`, 'warn');
-      });
-    }
-
-    // 3. 実際のパスワードを照合してハック実行
-    function submitCrack() {
-      const inputPass = document.getElementById('input-crack-pass').value.trim();
-      if (!inputPass) return;
-
-      db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).once('value', (snap) => {
-        const target = snap.val();
-        if (target && target.password === inputPass) {
-          log(`大成功！ ${target.name} のシステムを完全制圧しました！`, 'warn');
-          db.ref(`rooms/${myRoomId}/players/${activeTargetId}`).update({
-            isCracked: true
-          });
-          alert(`ハック成功！ ${target.name} を撃破しました！`);
-          closeActionPanel();
-        } else {
-          log(`失敗: パスワード不一致。相手のセキュリティにより検知されました。`, 'error');
-          alert('パスワードが間違っています！');
-        }
-      });
-    }
-  </script>
+// Initialize
+window.addEventListener('load', () => {
+  document.getElementById('input-roomid').addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
+  document.getElementById('input-password').addEventListener('keydown', e => { if (e.key === 'Enter') joinGame(); });
+});
+</script>
 </body>
 </html>
